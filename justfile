@@ -19,6 +19,14 @@ lint-workflows:
     uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
     uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
+# Scan IaC, workflows and Dockerfiles (same check as CI)
+iac-scan:
+    PYTHONUTF8=1 uvx --from checkov==3.3.26 checkov --config-file .checkov.yaml
+
+# Scan the whole git history for secrets (same check as CI)
+secrets-history:
+    gitleaks git --redact --no-banner
+
 # Lint and test the Python app (same checks as CI)
 test-app:
     cd app && uv sync --locked
