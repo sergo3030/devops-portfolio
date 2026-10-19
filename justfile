@@ -17,6 +17,7 @@ check:
 lint-workflows:
     actionlint
     uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
+    uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
 # Lint and test the Python app (same checks as CI)
 test-app:
