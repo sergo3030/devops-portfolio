@@ -1,0 +1,6 @@
+# Require every action to be pinned to a full commit SHA (no tags, no branches).
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin
