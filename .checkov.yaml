@@ -1,0 +1,10 @@
+# Checkov scans IaC, GitHub Actions workflows and Dockerfiles in the repo.
+directory:
+  - .
+framework:
+  - all
+quiet: true
+compact: true
+skip-path:
+  - app/.venv
+  - node_modules
