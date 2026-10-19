@@ -1,0 +1,9 @@
+# Hooks use locally installed binaries (no Go or Docker needed on Windows).
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: gitleaks git --pre-commit --staged --redact --no-banner
+        language: system
+        pass_filenames: false
