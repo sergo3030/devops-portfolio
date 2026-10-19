@@ -1,0 +1,40 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+terraform.tfvars
+*.auto.tfvars
+secrets/
+
+# OpenTofu / Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+override.tf
+override.tf.json
+# The lock file IS committed: do not ignore .terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
