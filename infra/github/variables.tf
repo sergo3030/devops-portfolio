@@ -27,6 +27,12 @@ variable "visibility" {
   }
 }
 
+variable "enable_secret_scanning" {
+  description = "Manage secret scanning and push protection. Needs a public repository: apply with false while flipping a private repository to public, then apply again with the default."
+  type        = bool
+  default     = true
+}
+
 variable "topics" {
   description = "Repository topics."
   type        = list(string)

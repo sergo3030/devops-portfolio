@@ -43,6 +43,19 @@ run "visibility_can_be_set_private" {
   }
 }
 
+run "security_block_is_skipped_while_flipping_to_public" {
+  command = plan
+
+  variables {
+    enable_secret_scanning = false
+  }
+
+  assert {
+    condition     = length(github_repository.this.security_and_analysis) == 0
+    error_message = "the security block must be omitted when enable_secret_scanning is false"
+  }
+}
+
 run "secret_scanning_and_push_protection_are_enabled" {
   command = plan
 

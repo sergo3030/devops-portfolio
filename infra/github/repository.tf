@@ -25,12 +25,18 @@ resource "github_repository" "this" {
   delete_branch_on_merge = true
 
   # Free on public repositories. Push protection blocks a push that contains a secret.
-  security_and_analysis {
-    secret_scanning {
-      status = "enabled"
-    }
-    secret_scanning_push_protection {
-      status = "enabled"
+  # GitHub rejects these settings in the same update that makes a private
+  # repository public, so the go-public flip takes two applies (see the runbook).
+  dynamic "security_and_analysis" {
+    for_each = var.enable_secret_scanning ? [1] : []
+
+    content {
+      secret_scanning {
+        status = "enabled"
+      }
+      secret_scanning_push_protection {
+        status = "enabled"
+      }
     }
   }
 

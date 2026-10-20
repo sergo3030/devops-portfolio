@@ -24,6 +24,8 @@ reason, so nothing changes silently.
 | D13 | Local bootstrap identity is the IAM user `portfolio-admin` (MFA, no keys) with `aws login` | Temporary credentials, no stored keys. Root stays unused. Needed again for teardown and the rebuild rehearsal |
 | D14 | Reserved concurrency cannot be set: the account's Lambda concurrent executions quota is 10 | AWS requires about 100 unreserved. The quota is adjustable. The limit of 10 acts as a natural cap while it stays low. See open items |
 
+| D15 | The repository went public on 2026-10-21, in two applies (visibility, then secret scanning and push protection) | GitHub rejects the security settings in the same update as the flip. The `enable_secret_scanning` variable controls the second step |
+
 ## Open items (decided when the task that needs them starts)
 
 | Item | Task | Issue |
