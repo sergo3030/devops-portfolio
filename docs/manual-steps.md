@@ -8,7 +8,7 @@ are the exceptions, with the reason.
 
 | Date | Step | Why by hand | Teardown impact |
 |---|---|---|---|
-| 2026-10 | Root user: no access keys (verified). MFA on root: to confirm | Root is not manageable as code | None. Keep. |
+| 2026-10 | Root user: MFA enabled, no access keys (both verified) | Root is not manageable as code | None. Keep. |
 | 2026-10 | Removed an old, unused admin IAM user and its access key | It was abandoned, with no activity for almost three years | None. Nothing to restore. |
 
 Preflight results (task 5): no root access keys, no charges in the last three
