@@ -21,6 +21,9 @@ reason, so nothing changes silently.
 | D11 | A permission boundary caps every project role: allowed services only, one region, expensive services denied | The cost-risk allowlist in IAM form. Checkov findings on the boundary are skipped with a stated reason |
 | D12 | Trust policies use the immutable subject format `repo:OWNER@OWNER_ID/REPO@REPO_ID:...` | Repositories created after 2026-07-15 use it. The `pull_request` form is inferred and verified in task 8 |
 
+| D13 | Local bootstrap identity is the IAM user `portfolio-admin` (MFA, no keys) with `aws login` | Temporary credentials, no stored keys. Root stays unused. Needed again for teardown and the rebuild rehearsal |
+| D14 | Reserved concurrency cannot be set: the account's Lambda concurrent executions quota is 10 | AWS requires about 100 unreserved. The quota is adjustable. The limit of 10 acts as a natural cap while it stays low. See open items |
+
 ## Open items (decided when the task that needs them starts)
 
 | Item | Task | Issue |
@@ -28,7 +31,8 @@ reason, so nothing changes silently.
 | Read-only `plan` role versus S3 native locking | 6, 8 | `tofu plan` writes a lock object. Allow `PutObject` and `DeleteObject` on the lock key only, or plan with `-lock=false` |
 | The `github` root needs a GitHub token | 7, 8, 22 | `GITHUB_TOKEN` cannot administer repository settings. Plan and apply that root locally, and let CI plan only `prod` |
 | Credentials for the one-time bootstrap | 6 | Prefer short-lived credentials (`aws login`) over stored access keys. Verify against the current AWS CLI docs first |
-| Reserved concurrency needs the account limit minus 100 | 5, 14 | Check the real quota with `aws lambda get-account-settings`. New accounts have lower quotas |
+| Reserved concurrency needs the account limit minus 100 | 14, 18 | The quota is 10 (checked). Either request an increase to 1,000 (free, adjustable) or drop reserved concurrency and keep the low account limit as the cap. Task 14 makes `reserved_concurrency` an optional variable |
+| `verify-clean` must not rely on the tag search alone | 18a | The tagging API does not list IAM roles. Also list roles by name prefix |
 | Image format on Lambda | 15 | Build with provenance attestations off, so Lambda accepts the manifest |
 | Budget alert email address | 6, 18 | Pass through a gitignored tfvars or `TF_VAR_*`, never in the repository |
 | Branch protection, required-reviewer environments, Pages on a private repository | 7, 8, 13 | Not listed for the Free plan. Confirm through the API, or wait for the go-public step |
