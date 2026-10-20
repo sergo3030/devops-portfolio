@@ -22,7 +22,7 @@ Purpose: a public portfolio whose real goal is to demonstrate DevOps skills (Ope
 - Local machine is Windows without WSL, so Docker does not run locally. Everything else runs natively, and GitHub Actions is the source of truth for container behavior.
 
 **Account facts**
-- The AWS account was created before 2025-07-15. It has no credits, the 12-month free offers have expired, and there is no hard spending cap.
+- AWS offers no hard spending cap, so the cost guards in section 6 are built in from the start.
 - Always-free services (Lambda, DynamoDB, CloudWatch Logs allowance) still apply. Verify the current limits before relying on them.
 
 ## 2. Architecture
@@ -109,7 +109,7 @@ Visitor
 | DynamoDB (optional) | $0 inside the always-free allowance |
 | CloudWatch Logs | $0 with 7-day retention and low volume |
 | S3 state bucket | A fraction of a cent a month (estimate) |
-| ECR image storage | **A few cents a month.** The free offer has expired on this account. A lifecycle policy keeps 2 images, and a slim image keeps each small |
+| ECR image storage | **A few cents a month.** Private image storage is billed per GB-month. A lifecycle policy keeps 2 images, and a slim image keeps each small |
 | Domain (optional) | About $10.46 a year at Cloudflare (third-party price) |
 
 **Guards (AWS has no hard cap)**
@@ -122,14 +122,14 @@ Visitor
 
 ## 6a. Teardown and shutdown
 
-The deployment is meant to run only during the job hunt, so a clean teardown is a first-class feature, rehearsed before launch. The repository stays useful afterwards as a code showcase.
+The deployment is meant to run only while the demo is needed, so a clean teardown is a first-class feature, rehearsed before launch. The repository stays useful afterwards as a code showcase.
 
 **Three levels**
 
 | Level | When | Removes | Keeps | How |
 |---|---|---|---|---|
-| 1. Pause the API | Between interviews, or at any cost scare | The `prod` root: Lambda, Function URL, ECR repo and images, DynamoDB, log groups | The GitHub Pages site (shows "API offline" with the saved copy), the bootstrap and the GitHub settings | `just teardown-api` |
-| 2. Remove AWS | When the job hunt ends | Level 1, then the `bootstrap` root: state bucket, OIDC provider and roles, Budget, anomaly monitor | The repository and the static site | `just teardown-aws` |
+| 1. Pause the API | When the API is not needed, or at any cost scare | The `prod` root: Lambda, Function URL, ECR repo and images, DynamoDB, log groups | The GitHub Pages site (shows "API offline" with the saved copy), the bootstrap and the GitHub settings | `just teardown-api` |
+| 2. Remove AWS | When the demo is no longer needed | Level 1, then the `bootstrap` root: state bucket, OIDC provider and roles, Budget, anomaly monitor | The repository and the static site | `just teardown-aws` |
 | 3. Retire the project | When you are done | Level 2, then the site | An archived public repo with a README banner (optional), or nothing | Checklist in the runbook |
 
 **Design rules that make teardown clean (build these in from the start)**
