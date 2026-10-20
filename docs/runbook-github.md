@@ -32,6 +32,22 @@ tofu import github_repository_vulnerability_alerts.this devops-portfolio
 
 An `import` block cannot be kept in the code, because `tofu test` crashes on it.
 
+## Going public takes two applies
+
+GitHub rejects secret scanning and push protection in the same update that makes a
+private repository public (`422 Secret scanning is not available for this
+repository`). The flip was therefore done in two steps, and the same order applies
+if the repository is ever recreated as private:
+
+```bash
+tofu plan -var enable_secret_scanning=false -out=tfplan   # visibility only
+tofu apply tfplan
+tofu plan -out=tfplan                                     # now the security settings
+tofu apply tfplan
+```
+
+Done on 2026-10-21 (visibility `public`, secret scanning and push protection `enabled`).
+
 ## Safety
 
 - `prevent_destroy` on the repository. `tofu plan -destroy` fails with
@@ -43,5 +59,5 @@ An `import` block cannot be kept in the code, because `tofu test` crashes on it.
 
 ## Not managed here yet
 
-Visibility (still private), secret scanning, push protection, the branch ruleset,
-the `prod` environment and Pages come after the go-public gate (task 7b).
+The branch ruleset, the `prod` environment, Pages and the Actions permissions come
+in task 7b.
