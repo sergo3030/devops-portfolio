@@ -16,6 +16,10 @@ reason, so nothing changes silently.
 | D6 | Dependabot uses the `opentofu` ecosystem, not `terraform` | GitHub added a dedicated ecosystem on 2025-12-16. `opentofu`, `docker` and `npm` entries are added in tasks 6, 11 and 12 |
 | D7 | Budget and Cost Anomaly Detection are created in task 6 through OpenTofu, not by hand in task 5 | "Create nothing by hand", and they must be tagged and destroyable |
 | D8 | Gitleaks runs in CI from a release pinned by SHA-256 | No third-party action needed |
+| D9 | The `apply` role is created in task 8, not task 6 | It trusts the protected environment's OIDC claim, which can only be verified in task 8. It is also the most powerful role |
+| D10 | The `plan` role uses a custom read-only policy for the services in use, not `ReadOnlyAccess` | Least privilege. Missing read actions show up in the first CI plan (task 8) and are added then |
+| D11 | A permission boundary caps every project role: allowed services only, one region, expensive services denied | The cost-risk allowlist in IAM form. Checkov findings on the boundary are skipped with a stated reason |
+| D12 | Trust policies use the immutable subject format `repo:OWNER@OWNER_ID/REPO@REPO_ID:...` | Repositories created after 2026-07-15 use it. The `pull_request` form is inferred and verified in task 8 |
 
 ## Open items (decided when the task that needs them starts)
 
@@ -23,7 +27,6 @@ reason, so nothing changes silently.
 |---|---|---|
 | Read-only `plan` role versus S3 native locking | 6, 8 | `tofu plan` writes a lock object. Allow `PutObject` and `DeleteObject` on the lock key only, or plan with `-lock=false` |
 | The `github` root needs a GitHub token | 7, 8, 22 | `GITHUB_TOKEN` cannot administer repository settings. Plan and apply that root locally, and let CI plan only `prod` |
-| Missing `apply` role in task 6 | 6 | Section 3 of the plan defines it, task 6 does not list it |
 | Credentials for the one-time bootstrap | 6 | Prefer short-lived credentials (`aws login`) over stored access keys. Verify against the current AWS CLI docs first |
 | Reserved concurrency needs the account limit minus 100 | 5, 14 | Check the real quota with `aws lambda get-account-settings`. New accounts have lower quotas |
 | Image format on Lambda | 15 | Build with provenance attestations off, so Lambda accepts the manifest |

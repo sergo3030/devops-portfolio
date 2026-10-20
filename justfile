@@ -27,6 +27,15 @@ iac-scan:
 secrets-history:
     gitleaks git --redact --no-banner
 
+# Format, validate and test the OpenTofu roots without credentials (same checks as CI)
+tofu-check:
+    tofu fmt -check -recursive -diff infra
+    for root in infra/bootstrap; do \
+      tofu -chdir="$root" init -backend=false -input=false && \
+      tofu -chdir="$root" validate && \
+      tofu -chdir="$root" test; \
+    done
+
 # Lint and test the Python app (same checks as CI)
 test-app:
     cd app && uv sync --locked
