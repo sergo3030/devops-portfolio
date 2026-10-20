@@ -48,6 +48,36 @@ tofu apply tfplan
 
 Done on 2026-10-21 (visibility `public`, secret scanning and push protection `enabled`).
 
+## Protection rules (task 7b)
+
+| Piece | Where | Notes |
+|---|---|---|
+| Ruleset `protect-main` | `ruleset.tf` | Pull request required (0 approvals), rebase only, linear history, no force push or deletion. Required checks are the CI job names plus CodeQL results. No bypass actors. |
+| Environment `prod` | `environments.tf` | The owner is the reviewer, `main` only, admin bypass off. Self-review stays allowed because there is one maintainer. |
+| Actions | `actions.tf` | SHA pinning required, selected actions only (GitHub-owned plus `allowed_action_patterns`), read-only token. |
+| Pages | `pages.tf` | Built by a workflow (task 13). |
+| Dependabot security updates | `actions.tf` | On. |
+
+`scripts/check-required-checks.sh` (run in CI) fails if a job of the CI or
+dependency-review workflow is missing from the required list, so a renamed job
+cannot silently block or skip the gate.
+
+**Break-glass.** If a required check is broken and blocks every merge, from the
+owner's laptop run `tofu apply -var ruleset_enforcement=disabled` in
+`infra/github`, fix the check, then apply again without the variable.
+
+**Adding an action.** Add its pattern to `allowed_action_patterns` in
+`variables.tf` in the same pull request that uses it, and apply it first.
+
+## Settings the provider cannot manage
+
+Set once with `gh api` and verified with `just github-settings-check`:
+
+- Fork PR approval: `PUT /repos/{owner}/{repo}/actions/permissions/fork-pr-contributor-approval`
+  with `approval_policy=all_external_contributors`
+- Private vulnerability reporting: `PUT /repos/{owner}/{repo}/private-vulnerability-reporting`
+  (`SECURITY.md` tells reporters to use it)
+
 ## Safety
 
 - `prevent_destroy` on the repository. `tofu plan -destroy` fails with
@@ -59,5 +89,4 @@ Done on 2026-10-21 (visibility `public`, secret scanning and push protection `en
 
 ## Not managed here yet
 
-The branch ruleset, the `prod` environment, Pages and the Actions permissions come
-in task 7b.
+Nothing else is outstanding for this root.

@@ -6,7 +6,7 @@
 resource "github_repository" "this" {
   #checkov:skip=CKV_GIT_1:The repository is public on purpose: it is a portfolio, and the free security features need a public repository.
   #checkov:skip=CKV_GIT_3:Alerts are enabled by the separate github_repository_vulnerability_alerts resource (the inline argument is deprecated).
-  #checkov:skip=CKV2_GIT_1:Branch protection is a ruleset added in task 7b. It needs a public repository on the Free plan.
+  #checkov:skip=CKV2_GIT_1:Branch protection is the ruleset in ruleset.tf. Checkov only recognises github_branch_protection.
   name        = var.repository_name
   description = var.repository_description
   visibility  = var.visibility

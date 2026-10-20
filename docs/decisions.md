@@ -26,6 +26,10 @@ reason, so nothing changes silently.
 
 | D15 | The repository went public on 2026-10-21, in two applies (visibility, then secret scanning and push protection) | GitHub rejects the security settings in the same update as the flip. The `enable_secret_scanning` variable controls the second step |
 
+| D16 | Branch protection is a ruleset with no bypass actors. Break-glass is `ruleset_enforcement=disabled` applied from the laptop | The rules bind the owner too. The escape hatch is code, so it is reviewable and rehearsed |
+| D17 | Only GitHub-owned actions plus an allowlist may run, and every action must be SHA-pinned (enforced by GitHub, not only by zizmor) | Supply-chain control. A new action is a reviewed change to `allowed_action_patterns` |
+| D18 | Fork PR approval and private vulnerability reporting are set with `gh api` and checked by `just github-settings-check` | No provider resource exists for them |
+
 ## Open items (decided when the task that needs them starts)
 
 | Item | Task | Issue |
