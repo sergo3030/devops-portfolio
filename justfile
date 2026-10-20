@@ -36,6 +36,10 @@ tofu-check:
       tofu -chdir="$root" test; \
     done
 
+# Plan the bootstrap root from a local `aws login --profile portfolio-bootstrap` session
+bootstrap-plan:
+    AWS_PROFILE=portfolio-bootstrap AWS_REGION=us-east-1 tofu -chdir=infra/bootstrap plan
+
 # Lint and test the Python app (same checks as CI)
 test-app:
     cd app && uv sync --locked
