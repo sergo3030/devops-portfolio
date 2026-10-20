@@ -4,7 +4,7 @@
 # Destroying this root must never delete the repository.
 
 resource "github_repository" "this" {
-  #checkov:skip=CKV_GIT_1:The repository is public on purpose once it goes live. It starts private for the bootstrap.
+  #checkov:skip=CKV_GIT_1:The repository is public on purpose: it is a portfolio, and the free security features need a public repository.
   #checkov:skip=CKV_GIT_3:Alerts are enabled by the separate github_repository_vulnerability_alerts resource (the inline argument is deprecated).
   #checkov:skip=CKV2_GIT_1:Branch protection is a ruleset added in task 7b. It needs a public repository on the Free plan.
   name        = var.repository_name
@@ -23,6 +23,16 @@ resource "github_repository" "this" {
   allow_auto_merge   = false
 
   delete_branch_on_merge = true
+
+  # Free on public repositories. Push protection blocks a push that contains a secret.
+  security_and_analysis {
+    secret_scanning {
+      status = "enabled"
+    }
+    secret_scanning_push_protection {
+      status = "enabled"
+    }
+  }
 
   lifecycle {
     prevent_destroy = true
