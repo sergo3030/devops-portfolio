@@ -1,0 +1,2 @@
+# THROWAWAY test file: a deliberately vulnerable pinned dependency
+pyyaml==5.3
