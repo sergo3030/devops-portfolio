@@ -21,25 +21,39 @@ run "only_rebase_merge_is_allowed" {
   }
 }
 
-run "repository_starts_private" {
+run "repository_is_public_by_default" {
   command = plan
-
-  assert {
-    condition     = github_repository.this.visibility == "private"
-    error_message = "visibility must default to private"
-  }
-}
-
-run "visibility_can_be_set_public" {
-  command = plan
-
-  variables {
-    visibility = "public"
-  }
 
   assert {
     condition     = github_repository.this.visibility == "public"
+    error_message = "visibility must default to public"
+  }
+}
+
+run "visibility_can_be_set_private" {
+  command = plan
+
+  variables {
+    visibility = "private"
+  }
+
+  assert {
+    condition     = github_repository.this.visibility == "private"
     error_message = "the visibility variable must reach the repository"
+  }
+}
+
+run "secret_scanning_and_push_protection_are_enabled" {
+  command = plan
+
+  assert {
+    condition     = github_repository.this.security_and_analysis[0].secret_scanning[0].status == "enabled"
+    error_message = "secret scanning must be enabled"
+  }
+
+  assert {
+    condition     = github_repository.this.security_and_analysis[0].secret_scanning_push_protection[0].status == "enabled"
+    error_message = "push protection must be enabled"
   }
 }
 
