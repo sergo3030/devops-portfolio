@@ -30,7 +30,8 @@ secrets-history:
 # Format, validate and test the OpenTofu roots without credentials (same checks as CI)
 tofu-check:
     tofu fmt -check -recursive -diff infra
-    for root in infra/bootstrap; do \
+    grep -q 'prevent_destroy = true' infra/github/repository.tf
+    for root in infra/bootstrap infra/github; do \
       tofu -chdir="$root" init -backend=false -input=false && \
       tofu -chdir="$root" validate && \
       tofu -chdir="$root" test; \
@@ -39,6 +40,10 @@ tofu-check:
 # Plan the bootstrap root from a local `aws login --profile portfolio-bootstrap` session
 bootstrap-plan:
     AWS_PROFILE=portfolio-bootstrap AWS_REGION=us-east-1 tofu -chdir=infra/bootstrap plan
+
+# Plan the github root. Needs `aws login` (state) and `gh auth login` (token, read at run time)
+github-plan:
+    GITHUB_TOKEN="$(gh auth token)" AWS_PROFILE=portfolio-bootstrap AWS_REGION=us-east-1 tofu -chdir=infra/github plan
 
 # Lint and test the Python app (same checks as CI)
 test-app:
