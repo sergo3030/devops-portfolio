@@ -7,6 +7,8 @@ handling.
 Status: work in progress (baseline task 1). The architecture, the cost model and
 the teardown procedure are described in [docs/aws-lambda-baseline-plan.md](docs/aws-lambda-baseline-plan.md).
 
+More: [decisions and plan deviations](docs/decisions.md), [manual steps](docs/manual-steps.md).
+
 ## Quick start (Windows, Git Bash)
 
 See [docs/toolchain.md](docs/toolchain.md) for the tools and how to install them.
