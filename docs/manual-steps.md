@@ -22,6 +22,8 @@ months ($0 baseline). Lambda concurrent executions quota: 10 (task 6).
 | Repository created as private, then made public at the go-public step | Bootstrapping: the repo must exist before OpenTofu can manage it (task 7) |
 | Account setting "Block command line pushes that expose my email" (to do, in github.com/settings/emails) | Account settings are not exposed by the API or the provider |
 
+To find every resource of the project, see [inventory.md](inventory.md).
+
 ## Rule for new entries
 
 Add a row here in the same pull request that introduces any manual step, with the

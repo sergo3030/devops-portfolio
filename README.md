@@ -8,6 +8,7 @@ Status: work in progress (baseline task 1). The architecture, the cost model and
 the teardown procedure are described in [docs/aws-lambda-baseline-plan.md](docs/aws-lambda-baseline-plan.md).
 
 More: [decisions and plan deviations](docs/decisions.md), [manual steps](docs/manual-steps.md),
+[inventory of project resources](docs/inventory.md),
 runbooks for the [bootstrap root](docs/runbook-bootstrap.md) and the [github root](docs/runbook-github.md).
 
 ## Quick start (Windows, Git Bash)
