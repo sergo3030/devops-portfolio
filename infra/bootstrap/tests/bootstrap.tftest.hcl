@@ -1,0 +1,159 @@
+# Runs with a mocked AWS provider: no credentials, no network, no cost.
+
+mock_provider "aws" {
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+    }
+  }
+
+  mock_data "aws_partition" {
+    defaults = {
+      partition = "aws"
+    }
+  }
+
+  # The provider validates ARN syntax, so computed ARNs need realistic values.
+  mock_resource "aws_iam_policy" {
+    defaults = {
+      arn = "arn:aws:iam::123456789012:policy/portfolio-boundary"
+    }
+  }
+
+  mock_resource "aws_iam_openid_connect_provider" {
+    defaults = {
+      arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+    }
+  }
+
+  mock_resource "aws_ce_anomaly_monitor" {
+    defaults = {
+      arn = "arn:aws:ce::123456789012:anomalymonitor/00000000-0000-0000-0000-000000000000"
+    }
+  }
+}
+
+variables {
+  budget_alert_email = "alerts@example.com"
+}
+
+run "plan_role_trusts_only_pull_requests_of_this_repo" {
+  assert {
+    condition = (
+      jsondecode(aws_iam_role.plan.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"]
+      == "repo:sergo3030@61195883/devops-portfolio@1425913518:pull_request"
+    )
+    error_message = "plan role must trust only the pull_request subject of this repository"
+  }
+
+  assert {
+    condition = (
+      jsondecode(aws_iam_role.plan.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"]
+      == "sts.amazonaws.com"
+    )
+    error_message = "plan role must require the sts.amazonaws.com audience"
+  }
+}
+
+run "ecr_push_role_trusts_only_the_main_branch" {
+  assert {
+    condition = (
+      jsondecode(aws_iam_role.ecr_push.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"]
+      == "repo:sergo3030@61195883/devops-portfolio@1425913518:ref:refs/heads/main"
+    )
+    error_message = "ecr-push role must trust only refs/heads/main of this repository"
+  }
+}
+
+run "ecr_push_is_limited_to_one_repository" {
+  assert {
+    condition = (
+      jsondecode(aws_iam_role_policy.ecr_push.policy).Statement[1].Resource
+      == "arn:aws:ecr:us-east-1:123456789012:repository/portfolio-api"
+    )
+    error_message = "push permissions must name exactly one ECR repository"
+  }
+}
+
+run "plan_role_cannot_write_state_only_lock_objects" {
+  assert {
+    condition = (
+      jsondecode(aws_iam_role_policy.plan.policy).Statement[2].Resource
+      == "arn:aws:s3:::portfolio-tfstate-x7k2m9qd4t/*.tflock"
+    )
+    error_message = "the only S3 write allowed to the plan role is the lock object"
+  }
+}
+
+run "all_roles_carry_the_permission_boundary" {
+  assert {
+    condition     = aws_iam_role.plan.permissions_boundary == aws_iam_policy.boundary.arn
+    error_message = "plan role must have the boundary"
+  }
+
+  assert {
+    condition     = aws_iam_role.ecr_push.permissions_boundary == aws_iam_policy.boundary.arn
+    error_message = "ecr-push role must have the boundary"
+  }
+}
+
+run "state_bucket_is_not_force_destroyed_by_default" {
+  assert {
+    condition     = aws_s3_bucket.state.force_destroy == false
+    error_message = "force_destroy must default to false"
+  }
+
+  assert {
+    condition     = aws_s3_bucket.state.bucket == "portfolio-tfstate-x7k2m9qd4t"
+    error_message = "unexpected state bucket name"
+  }
+}
+
+run "force_destroy_is_switched_on_by_the_variable" {
+  variables {
+    force_destroy = true
+  }
+
+  assert {
+    condition     = aws_s3_bucket.state.force_destroy == true
+    error_message = "force_destroy variable must reach the bucket"
+  }
+}
+
+run "existing_oidc_provider_is_reused_when_requested" {
+  variables {
+    create_oidc_provider = false
+  }
+
+  assert {
+    condition     = length(aws_iam_openid_connect_provider.github) == 0
+    error_message = "no provider may be created when create_oidc_provider is false"
+  }
+}
+
+run "budget_is_one_dollar_monthly" {
+  assert {
+    condition     = aws_budgets_budget.monthly.limit_amount == "1" && aws_budgets_budget.monthly.time_unit == "MONTHLY"
+    error_message = "budget must be 1 USD per month"
+  }
+}
+
+run "bad_bucket_suffix_is_rejected" {
+  command = plan
+
+  variables {
+    state_bucket_suffix = "Bad Suffix!"
+  }
+
+  expect_failures = [var.state_bucket_suffix]
+}
+
+run "bad_email_is_rejected" {
+  command = plan
+
+  variables {
+    budget_alert_email = "not-an-email"
+  }
+
+  expect_failures = [var.budget_alert_email]
+}
