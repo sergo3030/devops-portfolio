@@ -133,9 +133,12 @@ jobs:
       - name: tofu fmt
         run: tofu fmt -check -recursive -diff infra
 
+      - name: Repository must keep prevent_destroy
+        run: grep -q 'prevent_destroy = true' infra/github/repository.tf
+
       - name: Validate and test each root (no credentials needed)
         run: |
-          for root in infra/bootstrap; do
+          for root in infra/bootstrap infra/github; do
             echo "::group::${root}"
             tofu -chdir="${root}" init -backend=false -input=false
             tofu -chdir="${root}" validate
