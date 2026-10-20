@@ -20,6 +20,8 @@ months ($0 baseline). Lambda concurrent executions quota: 10 (task 6).
 | Step | Why by hand |
 |---|---|
 | Repository created as private. Made public through OpenTofu on 2026-10-21 | Bootstrapping: the repo must exist before OpenTofu can manage it (task 7) |
+| Fork PR approval set to `all_external_contributors` (`gh api`, 2026-10-21). Verified by `just github-settings-check` | No provider resource exists for it |
+| Private vulnerability reporting enabled (`gh api`, 2026-10-21). Verified by `just github-settings-check`. `SECURITY.md` points to it | No provider resource exists for it |
 | Account settings "Keep my email addresses private" and "Block command line pushes that expose my email" (both on, github.com/settings/emails) | Account settings are not exposed by the API or the provider |
 
 To find every resource of the project, see [inventory.md](inventory.md).
