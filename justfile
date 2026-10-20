@@ -31,6 +31,7 @@ secrets-history:
 tofu-check:
     tofu fmt -check -recursive -diff infra
     grep -q 'prevent_destroy = true' infra/github/repository.tf
+    bash scripts/check-required-checks.sh
     for root in infra/bootstrap infra/github; do \
       tofu -chdir="$root" init -backend=false -input=false && \
       tofu -chdir="$root" validate && \
@@ -44,6 +45,13 @@ bootstrap-plan:
 # Plan the github root. Needs `aws login` (state) and `gh auth login` (token, read at run time)
 github-plan:
     GITHUB_TOKEN="$(gh auth token)" AWS_PROFILE=portfolio-bootstrap AWS_REGION=us-east-1 tofu -chdir=infra/github plan
+
+# Read-only check of the repository settings the OpenTofu provider cannot manage
+github-settings-check:
+    @echo "private vulnerability reporting must be on, fork PR approval must cover all external contributors"
+    test "$(gh api repos/sergo3030/devops-portfolio/private-vulnerability-reporting --jq .enabled)" = "true"
+    test "$(gh api repos/sergo3030/devops-portfolio/actions/permissions/fork-pr-contributor-approval --jq .approval_policy)" = "all_external_contributors"
+    @echo "ok"
 
 # Lint and test the Python app (same checks as CI)
 test-app:

@@ -33,6 +33,32 @@ variable "enable_secret_scanning" {
   default     = true
 }
 
+variable "ruleset_enforcement" {
+  description = "Enforcement of the main-branch ruleset. `disabled` is the break-glass: use it only to fix a broken required check."
+  type        = string
+  default     = "active"
+
+  validation {
+    condition     = contains(["active", "disabled"], var.ruleset_enforcement)
+    error_message = "ruleset_enforcement must be active or disabled."
+  }
+}
+
+variable "reviewer_user_id" {
+  description = "Numeric GitHub ID of the person who approves deployments to the prod environment."
+  type        = number
+  default     = 61195883
+}
+
+variable "allowed_action_patterns" {
+  description = "Third-party actions that workflows may use (GitHub-owned actions are always allowed). Add a pattern here before using a new action."
+  type        = list(string)
+  default = [
+    "astral-sh/setup-uv@*",
+    "opentofu/setup-opentofu@*",
+  ]
+}
+
 variable "topics" {
   description = "Repository topics."
   type        = list(string)

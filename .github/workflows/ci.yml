@@ -136,6 +136,9 @@ jobs:
       - name: Repository must keep prevent_destroy
         run: grep -q 'prevent_destroy = true' infra/github/repository.tf
 
+      - name: Required checks must match the CI job names
+        run: bash scripts/check-required-checks.sh
+
       - name: Validate and test each root (no credentials needed)
         run: |
           for root in infra/bootstrap infra/github; do
