@@ -1,6 +1,8 @@
 [project]
 name = "portfolio-api"
-version = "0.1.0"
+# A placeholder, not the release version. The running version comes from the git tag through
+# the APP_VERSION environment variable set by the release build (see docs/api.md).
+version = "0.0.0"
 description = "Read-only FastAPI service that serves the portfolio's published content"
 requires-python = ">=3.13"
 dependencies = [
