@@ -20,4 +20,14 @@ describe('accessibility baseline', () => {
     const { container } = render(<App content={withCaseStudy} />);
     expect(await violations(container)).toEqual([]);
   });
+
+  it('has none with the data status line, live or offline', async () => {
+    for (const dataSource of [{ kind: 'live', version: '1.2.3' }, { kind: 'offline' }] as const) {
+      const { container, unmount } = render(
+        <App content={withCaseStudy} dataSource={dataSource} />,
+      );
+      expect(await violations(container)).toEqual([]);
+      unmount();
+    }
+  });
 });

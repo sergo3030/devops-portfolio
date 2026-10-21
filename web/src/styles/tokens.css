@@ -10,6 +10,8 @@
   --color-text-muted: #4b5661;
   --color-accent: #0b5cad;
   --color-border: #d5dbe1;
+  /* Edges of controls the visitor must find (inputs): at least 3:1 against the page. */
+  --color-border-strong: #6b7683;
   --color-focus: #b45309;
 
   /* Type */
@@ -39,6 +41,7 @@
     --color-text-muted: #a3afbb;
     --color-accent: #6fb1ff;
     --color-border: #2b3744;
+    --color-border-strong: #7d8a98;
     --color-focus: #fbbf24;
   }
 }

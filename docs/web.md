@@ -2,7 +2,22 @@
 
 A static React site (Vite, React 19, TypeScript) that shows the published content. It is
 built to GitHub Pages in task 13. It works with the API off: the content is embedded at build
-time, and task 12c swaps in live data from the API when it answers.
+time, and the page swaps in live data from the API when it answers (see "Live data").
+
+## Live data (D32)
+
+`Root` renders the saved copy at once, then `useLiveContent` fetches `/content` and `/health`
+with a 5 s deadline. The line at the bottom of the page says what happened:
+
+| State | When | Line |
+|---|---|---|
+| none | no API configured (production build without `VITE_API_URL`), or the request is still running | nothing |
+| live | `/content` answered and passed the guard | "Live from API · version X" (no version if `/health` failed) |
+| offline | network error, non-200, too slow, not JSON, or failed the guard | "API offline: showing the saved copy" |
+
+In development the API address is `/api` (proxied to `just api-dev`). A production build uses
+`VITE_API_URL`, which must be an absolute origin (see `web/.env.example`). The API needs CORS for
+the site's origin before a deployed site can call it (task 16).
 
 ## Commands
 

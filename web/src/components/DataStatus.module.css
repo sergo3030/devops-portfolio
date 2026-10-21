@@ -1,0 +1,15 @@
+.footer {
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.footer p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* The colour is never the only signal: the words say it too. */
+.offline {
+  font-weight: 600;
+}
