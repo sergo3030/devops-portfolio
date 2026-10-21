@@ -55,7 +55,7 @@ Done on 2026-10-21 (visibility `public`, secret scanning and push protection `en
 | Ruleset `protect-main` | `ruleset.tf` | Pull request required (0 approvals), rebase only, linear history, no force push or deletion. Required checks are the CI job names plus CodeQL results. No bypass actors. |
 | Environment `prod` | `environments.tf` | The owner is the reviewer, `main` only, admin bypass off. Self-review stays allowed because there is one maintainer. |
 | Actions | `actions.tf` | SHA pinning required, selected actions only (GitHub-owned plus `allowed_action_patterns`), read-only token. |
-| Pages | `pages.tf` | Built by a workflow (task 13). |
+| Pages | `pages.tf` | Built and published by `.github/workflows/pages.yml` (task 13). The `github-pages` environment, created by GitHub, accepts deployments from `main` only. To take the site down, remove `pages.tf` and apply (the next run of the workflow would fail until Pages is back). |
 | Dependabot security updates | `actions.tf` | On. |
 
 `scripts/check-required-checks.sh` (run in CI) fails if a job of the CI or

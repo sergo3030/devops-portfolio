@@ -68,6 +68,25 @@ web/
   the API origin at build time, so no public text skips the approval gate.
 - Bundle budget: 90 KB JavaScript and 15 KB CSS, gzipped. `npm run check:size` fails above it.
 
+## Deploy (task 13, D33)
+
+`.github/workflows/pages.yml` publishes the site to https://sergo3030.github.io/devops-portfolio/
+after a merge to `main` that touches `web/`, `content/`, the verify script or the workflow itself,
+and on demand from the Actions tab (from `main`: the `github-pages` environment refuses other
+branches).
+
+| Job | Does |
+|---|---|
+| `build (site)` | Builds the snapshot (approved lines only), `npm ci`, build, bundle budget, uploads `web/dist` and records the SHA-256 of `index.html` |
+| `deploy (github-pages)` | Publishes the artifact, then `scripts/verify-site.sh` fetches the live page (retrying up to 90 s while the CDN catches up), requires it to be byte-identical to the built `index.html`, and loads every script and stylesheet it references |
+
+The private content denylist cannot run in CI. Before a merge that changes `content/`, run
+`just content-check` on the laptop: the merge publishes the result.
+
+`VITE_API_URL` is not set for this build, so the deployed site shows the saved copy and no status
+line. Task 14 creates the API and task 16 adds CORS for the site origin; setting the variable then
+turns the live data on.
+
 ## Dependencies
 
 All versions are exact and `ignore-scripts` is on, so no package can run code when installed.
