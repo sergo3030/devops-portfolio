@@ -235,6 +235,7 @@ Estimates assume focused work. "Done when" is the acceptance check.
 | 26 | Secrets rotation and incident runbook | Documented and tested once | 0.25 d |
 
 ### Could
+- UI/UX elevation pass (added in task 12, after task 20): visual design, motion and a print stylesheet on top of the design tokens, with Playwright visual-regression tests against the built site. Task 12 prepares for it (D29, D30): styling goes through tokens and logical properties, components take data as props and render without browser globals, and the page metadata comes from the content. None of that blocks a later redesign.
 - Custom domain with Cloudflare DNS in OpenTofu, plus a secret header the API checks.
 - OpenTofu native state encryption.
 - Renovate instead of Dependabot, and release-please.

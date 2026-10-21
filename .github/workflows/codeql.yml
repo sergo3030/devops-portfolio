@@ -25,8 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Add javascript-typescript in task 12, when the React app exists.
-        language: [python, actions]
+        language: [python, actions, javascript-typescript]
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

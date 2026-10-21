@@ -1,6 +1,6 @@
 # Dependabot version updates. Weekly, grouped, with a cooldown so brand-new
 # releases wait a week. Ecosystems are added when their manifests first exist:
-#   npm -> task 12. (opentofu was due in task 6 and is added with docker in task 11.)
+#   npm -> task 12 (web/). opentofu was due in task 6 and was added with docker in task 11.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -39,6 +39,28 @@ updates:
     groups:
       docker:
         patterns: ["*"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      web:
+        patterns: ["*"]
+    # ESLint 10 and TypeScript 7 need the lint and type plugins to catch up (D31).
+    # Minor and patch updates still flow; a major is a deliberate task.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
 
