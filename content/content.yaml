@@ -1,0 +1,19 @@
+# Public-safe content of the portfolio. Every line has an `approved` flag that only
+# the owner sets after reading the exact wording. The published build contains
+# approved lines only, and case studies only when they are approved AND
+# employer_approval is `granted`. See docs/content.md.
+#
+# Contact details (phone, email, city), a photo and unit numbers never belong here.
+version: 1
+
+profile:
+  name: { text: "Sergey Rudich", approved: false }
+  title: { text: "DevOps Engineer", approved: false }
+  summary: { text: "Draft pending the owner's review.", approved: false }
+  country: { text: "Israel", approved: false }
+
+links: []
+skills: []
+experience: []
+case_studies: []
+languages: []

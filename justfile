@@ -57,9 +57,13 @@ github-settings-check:
 # Lint and test the Python app (same checks as CI)
 test-app:
     cd app && uv sync --locked
-    cd app && uv run ruff check .
-    cd app && uv run ruff format --check .
+    cd app && uv run ruff check . ../scripts
+    cd app && uv run ruff format --check . ../scripts
     cd app && uv run pytest
+
+# Check the public content including the PRIVATE denylist (not available in CI)
+content-check:
+    uv run --project app python scripts/check_content.py
 
 # Show installed tool versions
 versions:
