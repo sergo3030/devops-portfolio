@@ -34,6 +34,10 @@ web/
   src/
     styles/            tokens.css (the design tokens) and global.css
     App.tsx            a pure function of its props: { content }
+    components/        Header, Experience (timeline, newest first), Skills (text filter),
+                       CaseStudies (renders nothing until one is published), Languages, Section
+    lib/               formatPeriod, newestFirst, filterSkills (plain functions, unit-tested)
+    fixtures.ts        made-up content for tests
     content.ts         loads the embedded snapshot
     guard.ts           shape check for data fetched at run time
     generated/         content.json (snapshot) and content.ts (types), both git-ignored
