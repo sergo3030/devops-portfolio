@@ -7,6 +7,11 @@ repos:
         entry: gitleaks git --pre-commit --staged --redact --no-banner
         language: system
         pass_filenames: false
+      - id: hadolint
+        name: hadolint (Dockerfile)
+        entry: hadolint
+        language: system
+        files: ^app/Dockerfile$
       - id: content-check
         name: content checks incl. private denylist
         entry: uv run --project app python scripts/check_content.py
