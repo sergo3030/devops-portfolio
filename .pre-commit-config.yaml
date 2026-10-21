@@ -7,3 +7,9 @@ repos:
         entry: gitleaks git --pre-commit --staged --redact --no-banner
         language: system
         pass_filenames: false
+      - id: content-check
+        name: content checks incl. private denylist
+        entry: uv run --project app python scripts/check_content.py
+        language: system
+        files: ^(content/|scripts/check_content\.py)
+        pass_filenames: false

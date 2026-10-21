@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sergo3030/devops-portfolio/content/schema/content.schema.json",
+  "title": "Portfolio content",
+  "description": "Public-safe content of the portfolio. Every line carries an `approved` flag that only the owner sets, and the published build contains approved lines only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "profile", "links", "skills", "experience", "case_studies", "languages"],
+  "properties": {
+    "version": { "const": 1 },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "title", "summary", "country"],
+      "properties": {
+        "name": { "$ref": "#/$defs/line" },
+        "title": { "$ref": "#/$defs/line" },
+        "summary": { "$ref": "#/$defs/paragraph" },
+        "country": { "$ref": "#/$defs/line" }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "url", "approved"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "url": { "type": "string", "pattern": "^https://(www\\.)?(linkedin\\.com/in|github\\.com)/[A-Za-z0-9._-]+/?$" },
+          "approved": { "type": "boolean" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "items", "approved"],
+        "properties": {
+          "category": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1, "maxLength": 40 }
+          },
+          "approved": { "type": "boolean" }
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["employer", "role", "start", "end", "approved", "bullets"],
+        "properties": {
+          "employer": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "role": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "start": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+          "end": { "type": "string", "pattern": "^([0-9]{4}-(0[1-9]|1[0-2])|present)$" },
+          "approved": { "type": "boolean" },
+          "bullets": { "type": "array", "items": { "$ref": "#/$defs/paragraph" } }
+        }
+      }
+    },
+    "case_studies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "employer_approval", "approved", "summary", "sections"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "employer_approval": {
+            "enum": ["pending", "granted"],
+            "description": "Stays pending until the owner has the employer's go-ahead. A pending case study is never published."
+          },
+          "approved": { "type": "boolean" },
+          "summary": { "$ref": "#/$defs/paragraph" },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["heading", "approved", "paragraphs"],
+              "properties": {
+                "heading": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "approved": { "type": "boolean" },
+                "paragraphs": { "type": "array", "items": { "$ref": "#/$defs/paragraph" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "approved"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "approved": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "approved"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "approved": { "type": "boolean" }
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "approved"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 900 },
+        "approved": { "type": "boolean" }
+      }
+    }
+  }
+}

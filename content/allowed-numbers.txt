@@ -1,0 +1,10 @@
+# Numbers that may appear in published text. Everything here is already public on the
+# owner's current CV. Any other number (counts, sizes, percentages) is rejected by
+# scripts/check_content.py, so a figure from raw notes cannot slip in. Four-digit
+# years from 2000 to 2099 are always allowed. One number per line.
+5
+10+
+1.31
+1.35
+8.17
+9.5

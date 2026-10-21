@@ -70,13 +70,19 @@ jobs:
         run: uv sync --locked
 
       - name: ruff check
-        run: uv run ruff check .
+        run: uv run ruff check . ../scripts
 
       - name: ruff format
-        run: uv run ruff format --check .
+        run: uv run ruff format --check . ../scripts
 
       - name: pytest
         run: uv run pytest
+
+      - name: Content checks (schema, leak patterns, numbers)
+        working-directory: .
+        # The private denylist is not available in CI by design. It runs locally and in
+        # the pre-commit hook. The checks and their planted-violation tests run here.
+        run: uv run --project app python scripts/check_content.py --allow-missing-denylist --build "${RUNNER_TEMP}/public-content.json"
 
   secrets:
     name: secrets (gitleaks)
