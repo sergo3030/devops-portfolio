@@ -1,0 +1,15 @@
+# Allowlist: nothing enters the build context unless it is listed here. Tests, docs,
+# infrastructure code, the git history and every local file stay out of the image.
+*
+
+!app/pyproject.toml
+!app/uv.lock
+!app/portfolio_api/
+!content/content.yaml
+!content/allowed-numbers.txt
+!content/schema/content.schema.json
+!scripts/check_content.py
+
+# Never copy caches, even from allowed folders.
+**/__pycache__
+**/*.pyc

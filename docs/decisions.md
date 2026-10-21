@@ -42,6 +42,9 @@ reason, so nothing changes silently.
 | D25 | The running version has one source, the environment variable `APP_VERSION` (and `GIT_SHA`), set by the release build from the git tag. `pyproject.toml` keeps a placeholder, and `/health` and OpenAPI report the variable | The first version hardcoded `0.1.0` in two places that could drift, and the plan had no release mechanism at all. A test fails if a release version is hardcoded in the package |
 | D26 | Releases are tag-driven (task 15a, added to the plan): a `vX.Y.Z` tag builds the image and creates a GitHub Release with generated notes. `release-please` is not used | `release-please` opens a pull request with `GITHUB_TOKEN`, which does not trigger CI, so the required checks could never pass. Making them run needs a personal token or a GitHub App key stored in GitHub, which we avoid |
 
+| D27 | The container build, lint and smoke test are one required CI job, `image (hadolint, build, smoke)`, with no path filter. It uses plain `docker build` and `docker compose` with provenance attestations off, so no third-party Docker action is allowed or needed | A path-filtered required check would block unrelated pull requests. Lambda does not accept multi-architecture images, and provenance attestations turn the image into an OCI index. The adapter, the base image and the `uv` image are pinned by digest |
+| D28 | Docker stays CI-only. WSL 2 with Docker Engine was offered (the laptop can run it) and declined by the owner. Revisit if the CI feedback loop for container work becomes too slow | Keeps the local toolchain native and small. CI is the source of truth for container behaviour either way |
+
 ## Verified OIDC subject formats (2026-10-21)
 
 Read from the claims of real GitHub OIDC tokens (audience `sts.amazonaws.com`, issuer

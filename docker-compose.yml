@@ -1,0 +1,24 @@
+# The stack the CI smoke test brings up. Docker does not run on the developer's laptop, so
+# this runs in GitHub Actions. The settings mimic the Lambda sandbox: a read-only root
+# filesystem with a writable /tmp, no Linux capabilities, no privilege escalation.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+        GIT_SHA: ${GIT_SHA:-}
+    image: portfolio-api:ci
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    restart: "no"

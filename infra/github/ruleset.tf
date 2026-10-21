@@ -17,6 +17,7 @@ locals {
     "analyze (python)",
     "analyze (actions)",
     "review (new dependencies)",
+    "image (hadolint, build, smoke)",
   ]
 }
 

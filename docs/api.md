@@ -56,3 +56,30 @@ Environment: `CONTENT_FILE` (default `content.public.json`), `ENABLE_DOCS`, `APP
 container can also run `uvicorn portfolio_api.main:app --host 0.0.0.0 --port 8080`.
 
 Docker is not available locally, so the container build and the Compose smoke test run in CI only.
+
+## Container image
+
+`app/Dockerfile` (build from the repository root with `docker build -f app/Dockerfile .`) has
+four stages. A **content** stage runs the content checker and bakes `content.public.json` (the
+private denylist cannot run in CI, so content must already have passed it locally through the
+pre-commit hook). A **builder** stage installs the runtime dependencies only, compiled to
+bytecode because the root filesystem is read-only on Lambda. The **runtime** stage copies in
+the venv, the package, the JSON and the Lambda Web Adapter, and runs as a non-root user with
+world-readable files. Every base image is pinned by digest, and Dependabot's docker ecosystem
+keeps them current.
+
+| Build argument | Meaning |
+|---|---|
+| `APP_VERSION` | The running version. CI uses `0.0.0-dev`, the release workflow (task 15a) uses the tag |
+| `GIT_SHA` | The commit the image was built from |
+
+Both become environment variables and OCI labels, and `/health` reports them. The adapter is set
+up with readiness path `/health`, healthy status `200` and an 8 second readiness timeout, so a
+broken start fails fast. Docker does not run on the developer's laptop, so the image is built and
+tested in CI only: the `image (hadolint, build, smoke)` job lints the Dockerfile, brings the stack
+up with `docker-compose.yml` (read-only root filesystem, no capabilities, no privilege
+escalation, like the Lambda sandbox) and runs `scripts/smoke-test-container.sh`.
+
+What CI cannot prove, because it needs the real Lambda service (checked in task 14): the adapter
+with `uvicorn`, whether Lambda honours the `USER` line, and that Lambda accepts the image
+manifest. Builds switch provenance attestations off so the image is not an OCI index.

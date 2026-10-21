@@ -160,6 +160,7 @@ run "ruleset_requires_every_ci_job" {
       "analyze (python)",
       "analyze (actions)",
       "review (new dependencies)",
+      "image (hadolint, build, smoke)",
     ])
     error_message = "required checks must match the CI job names exactly"
   }

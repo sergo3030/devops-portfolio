@@ -70,6 +70,10 @@ content-build:
 api-dev: content-build
     cd app && uv run python -m portfolio_api.main
 
+# Lint the Dockerfile with a locally installed hadolint (container builds run in CI only)
+hadolint:
+    hadolint app/Dockerfile
+
 # Check the public content including the PRIVATE denylist (not available in CI)
 content-check:
     uv run --project app python scripts/check_content.py
