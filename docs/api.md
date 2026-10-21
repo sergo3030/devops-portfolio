@@ -80,6 +80,11 @@ tested in CI only: the `image (hadolint, build, smoke)` job lints the Dockerfile
 up with `docker-compose.yml` (read-only root filesystem, no capabilities, no privilege
 escalation, like the Lambda sandbox) and runs `scripts/smoke-test-container.sh`.
 
+The image's `HEALTHCHECK` runs `python -m portfolio_api.healthcheck`, a small module that calls
+`GET /health` on the port from the same settings as the app. It is not `curl`: the slim image has
+no curl, installing it would add a package layer, attack surface and size, and Lambda ignores
+`HEALTHCHECK` anyway. A module also follows a changed `PORT` and has unit tests.
+
 What CI cannot prove, because it needs the real Lambda service (checked in task 14): the adapter
 with `uvicorn`, whether Lambda honours the `USER` line, and that Lambda accepts the image
 manifest. Builds switch provenance attestations off so the image is not an OCI index.

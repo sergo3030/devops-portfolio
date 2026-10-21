@@ -83,8 +83,9 @@ RUN python -m compileall -q /app/portfolio_api
 USER 10001
 EXPOSE 8080
 
-# Plain Docker and Compose use this. Lambda ignores it.
+# Plain Docker and Compose use this. Lambda ignores it. It is a small Python module instead
+# of curl, which the slim image does not have and would only add attack surface and size.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2).status == 200 else 1)"]
+    CMD ["python", "-m", "portfolio_api.healthcheck"]
 
 CMD ["python", "-m", "portfolio_api.main"]
