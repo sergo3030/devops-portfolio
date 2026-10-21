@@ -60,6 +60,17 @@ Both resources are free and are recreated in seconds.
 | `portfolio-ecr-push` | push to `main` | Push to the one ECR repository |
 | `portfolio-apply` | job in the `prod` environment (needs the owner's approval) | Today: read and write the `prod/` state keys only. Permissions for the prod root come in task 14 |
 
+## How CI uses the roles
+
+| Workflow | Role | When | Notes |
+|---|---|---|---|
+| `plan.yml` | `portfolio-plan` | Pull requests of this repository that change `infra/bootstrap/**` | `tofu plan` with a placeholder email. The full plan is in the job log, where the account ID is masked. The job summary shows only the one-line result. Fork pull requests are skipped. |
+| `deploy.yml` | `portfolio-apply` | Manual run, after the owner approves the `prod` environment | Today only proves the gate (prints the assumed role). Real deployment is task 15. |
+
+The workflows read the account ID from the Actions variable `AWS_ACCOUNT_ID`. If a plan
+fails with `AccessDenied`, a read action is missing from the plan role: add it to
+`roles.tf`, apply the bootstrap root locally, and re-run the job.
+
 ## Teardown (Level 2, last step)
 
 Only after the `prod` root is destroyed and `just verify-clean` is clean.

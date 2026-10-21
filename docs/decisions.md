@@ -34,6 +34,8 @@ reason, so nothing changes silently.
 | D20 | CI plans the bootstrap root with a placeholder alert email, and the Budget and anomaly subscription use `ignore_changes` | The email is personal and is not stored in GitHub. To change the email or thresholds, replace the two resources (see the bootstrap runbook). Drift on those attributes is not detected |
 | D21 | The `apply` role is created in task 8 with no resource permissions, only the prod state keys | The role that deploys from the protected environment never holds more than the code in the repository needs. Task 14 adds its permissions with the code that needs them |
 
+| D22 | The `plan` workflow runs only when `infra/bootstrap/**` changes, so it is not a required check. Its job summary shows only the plan's one-line result | A path-filtered check that does not run would block unrelated pull requests. A plan in a public summary could expose the account ID |
+
 ## Verified OIDC subject formats (2026-10-21)
 
 Read from the claims of real GitHub OIDC tokens (audience `sts.amazonaws.com`, issuer
