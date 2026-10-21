@@ -40,6 +40,26 @@ Set `AWS_PROFILE=portfolio-bootstrap` and `AWS_REGION=us-east-1` in the shell fi
 `tofu plan` and `tofu apply` in `infra/bootstrap` with the same login. CI never
 applies this root.
 
+## Changing the alert email or the budget thresholds
+
+CI plans this root with a placeholder email, so the Budget notifications and the anomaly
+subscriber are in `ignore_changes`. A normal apply therefore never changes them. To change
+the email (set `TF_VAR_budget_alert_email` first) or the thresholds, replace both:
+
+```bash
+tofu apply -replace=aws_budgets_budget.monthly -replace=aws_ce_anomaly_subscription.daily
+```
+
+Both resources are free and are recreated in seconds.
+
+## Roles
+
+| Role | Trusts (OIDC subject) | Can do |
+|---|---|---|
+| `portfolio-plan` | pull request of this repository | Read the project's resources, read state, write only `.tflock` objects |
+| `portfolio-ecr-push` | push to `main` | Push to the one ECR repository |
+| `portfolio-apply` | job in the `prod` environment (needs the owner's approval) | Today: read and write the `prod/` state keys only. Permissions for the prod root come in task 14 |
+
 ## Teardown (Level 2, last step)
 
 Only after the `prod` root is destroyed and `just verify-clean` is clean.

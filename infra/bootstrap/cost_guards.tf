@@ -2,6 +2,12 @@
 # Cost Anomaly Detection do not add cost. They are created here, not by hand,
 # so they are tagged and removed by the same destroy as everything else.
 
+# The alert email is personal data and must not be stored in GitHub, so CI plans
+# this root with a placeholder address. `ignore_changes` keeps that placeholder
+# from showing up as a change. To change the email or the thresholds, replace:
+#   tofu apply -replace=aws_budgets_budget.monthly -replace=aws_ce_anomaly_subscription.daily
+# (both are free and recreated in seconds).
+
 resource "aws_budgets_budget" "monthly" {
   name         = "${var.name_prefix}-monthly-${var.budget_limit_usd}usd"
   budget_type  = "COST"
@@ -32,6 +38,10 @@ resource "aws_budgets_budget" "monthly" {
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.budget_alert_email]
   }
+
+  lifecycle {
+    ignore_changes = [notification]
+  }
 }
 
 resource "aws_ce_anomaly_monitor" "services" {
@@ -58,5 +68,9 @@ resource "aws_ce_anomaly_subscription" "daily" {
       match_options = ["GREATER_THAN_OR_EQUAL"]
       values        = ["1"]
     }
+  }
+
+  lifecycle {
+    ignore_changes = [subscriber]
   }
 }
