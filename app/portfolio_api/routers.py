@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
 
+from portfolio_api.config import get_settings
 from portfolio_api.content import get_content
 from portfolio_api.models import Content
 
@@ -15,7 +16,12 @@ content_router = APIRouter(tags=["Content"])
 
 @health_router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    """Liveness, plus which build is running (the version, and the git SHA when it is set)."""
+    settings = get_settings()
+    body = {"status": "ok", "version": settings.app_version}
+    if settings.git_sha:
+        body["git_sha"] = settings.git_sha
+    return body
 
 
 @content_router.get("/content", response_model=Content)

@@ -8,6 +8,8 @@ Importing this module reads the environment but does no file I/O.
 Environment (see config.py):
   CONTENT_FILE  path of the published content JSON (default: content.public.json)
   ENABLE_DOCS   set to 1 to serve /docs, /redoc and /openapi.json (off by default)
+  APP_VERSION   the running version, set by the release build (default: 0.0.0-dev)
+  GIT_SHA       the commit the image was built from, set by the release build (optional)
   HOST, PORT    where `python -m portfolio_api.main` listens (default 127.0.0.1:8080)
 """
 
@@ -29,15 +31,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     content_store.clear()
 
 
-_docs = get_settings().enable_docs
+_settings = get_settings()  # invalid APP_VERSION or GIT_SHA stops the start-up here
 
 app = FastAPI(
     title="portfolio-api",
-    version="0.1.0",
+    version=_settings.app_version,
     lifespan=lifespan,
-    docs_url="/docs" if _docs else None,
-    redoc_url="/redoc" if _docs else None,
-    openapi_url="/openapi.json" if _docs else None,
+    docs_url="/docs" if _settings.enable_docs else None,
+    redoc_url="/redoc" if _settings.enable_docs else None,
+    openapi_url="/openapi.json" if _settings.enable_docs else None,
 )
 app.include_router(health_router)
 app.include_router(content_router)

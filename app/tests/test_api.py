@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import portfolio_api.main as main_module
+from portfolio_api.config import SettingsError, get_settings
 from portfolio_api.content import ContentError, content_store, get_content, load_content
 from portfolio_api.main import app
 from portfolio_api.models import Content
@@ -81,10 +82,61 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
         yield test_client
 
 
-def test_health(client: TestClient) -> None:
+def test_health_reports_the_default_version_without_a_git_sha(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("APP_VERSION", raising=False)
+    monkeypatch.delenv("GIT_SHA", raising=False)
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "version": "0.0.0-dev"}
+
+
+def test_health_reports_the_build_version_and_git_sha(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("APP_VERSION", "1.4.2")
+    monkeypatch.setenv("GIT_SHA", "a1b2c3d4e5f6")
+    assert client.get("/health").json() == {
+        "status": "ok",
+        "version": "1.4.2",
+        "git_sha": "a1b2c3d4e5f6",
+    }
+
+
+def test_openapi_version_follows_app_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CONTENT_FILE", str(write(tmp_path, sample_content())))
+    monkeypatch.setenv("ENABLE_DOCS", "1")
+    monkeypatch.setenv("APP_VERSION", "2.0.0")
+    reloaded = importlib.reload(main_module)  # the version is read when the module is imported
+    try:
+        with TestClient(reloaded.app) as enabled:
+            assert enabled.get("/openapi.json").json()["info"]["version"] == "2.0.0"
+    finally:
+        monkeypatch.delenv("ENABLE_DOCS")
+        monkeypatch.delenv("APP_VERSION")
+        importlib.reload(main_module)
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("APP_VERSION", "1.0.0; rm -rf /"),
+        ("APP_VERSION", "<script>"),
+        ("APP_VERSION", "x" * 80),
+        ("GIT_SHA", "not-a-sha"),
+        ("GIT_SHA", "ABCDEF1"),
+    ],
+    ids=["shell-metacharacters", "markup", "too-long", "not-hex", "uppercase"],
+)
+def test_unusable_build_variables_stop_the_start_up(
+    name: str, value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(name, value)
+    with pytest.raises(SettingsError, match=name):
+        get_settings()
 
 
 def test_content_is_served_with_a_cache_header(client: TestClient) -> None:
@@ -211,3 +263,16 @@ def test_the_api_never_serves_approval_state_or_unapproved_case_studies(
         if study["approved"] is True and study["employer_approval"] == "granted"
     }
     assert {study["id"] for study in body["case_studies"]} <= allowed_ids
+
+
+def test_no_release_version_is_hardcoded_in_the_package() -> None:
+    """The release version comes from APP_VERSION only. 0.0.0 (the default) is allowed."""
+    import re
+
+    semver = re.compile(r"(?<![\w.])(?!0\.0\.0)\d+\.\d+\.\d+(?![\w.])")
+    offenders = [
+        path.name
+        for path in (REPO / "app" / "portfolio_api").glob("*.py")
+        if semver.search(path.read_text(encoding="utf-8"))
+    ]
+    assert offenders == []

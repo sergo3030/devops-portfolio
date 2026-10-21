@@ -210,6 +210,7 @@ Estimates assume focused work. "Done when" is the acceptance check.
 |---|---|---|---|
 | 14 | `prod` root: ECR (keep 2 images, `force_delete` behind a variable), Lambda container image with the Lambda Web Adapter, Function URL, least-privilege role, reserved concurrency, a managed log group with 7-day retention, all tagged `Project=portfolio` | The API answers on the Function URL; `tofu destroy` removes everything and `apply` recreates it | 2 d |
 | 15 | CI/CD: build the image, scan with Hadolint and a pinned Trivy, push to ECR via OIDC, deploy by digest after approval | A merge produces a scanned image you can approve to deploy | 1.5 d |
+| 15a | Releases (added after task 10): one version source (`APP_VERSION` and `GIT_SHA`, set by the build from the git tag), a tag-driven workflow that builds the image and creates a GitHub Release with generated notes, the image tagged with the version and deployed by digest. No `release-please`: a pull request opened with `GITHUB_TOKEN` does not run the required checks, and a personal token would be a stored secret | Pushing a `vX.Y.Z` tag produces a GitHub Release whose image reports that version and SHA on `/health` | 0.75 d |
 | 16 | API hardening: CORS locked to the site origin, request size limits, security headers, no secrets in the image | CORS and header tests pass | 0.5 d |
 | 17 | Smoke tests: end-to-end against the Compose stack in CI (the only place Docker runs), and a post-deploy health check | Fails loudly when something is down | 1 d |
 | 18 | Cost guards verified: Budget alert tested, reserved concurrency confirmed | A test alert reaches you | 0.5 d |
@@ -238,7 +239,7 @@ Estimates assume focused work. "Done when" is the acceptance check.
 - OpenTofu native state encryption.
 - Renovate instead of Dependabot, and release-please.
 
-**Totals:** about 21.25 days for the must items, about 24.25 with the should items.
+**Totals:** about 22 days for the must items, about 25 with the should items (task 15a added).
 **Cut line:** if you are behind after task 13, ship tasks 1 to 13, 19 and 20 as a working local plus static-site version, and do production (tasks 14 to 18) as a separate milestone.
 
 ## 9. Local development and testing
