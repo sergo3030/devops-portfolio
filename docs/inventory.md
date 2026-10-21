@@ -31,6 +31,8 @@ allocation tag in Billing, Cost allocation tags. Activation takes up to 24 hours
 
 - Repository `sergo3030/devops-portfolio`: pull requests, Actions runs,
   Dependabot, and the settings managed by `infra/github` (`tofu state list` there).
+- The public site: https://sergo3030.github.io/devops-portfolio/ (GitHub Pages, published by the
+  `pages` workflow; Settings, Pages shows the latest deployment).
 - Closed throwaway pull requests stay visible in the history. Closed pull requests cannot be deleted.
 
 ## On the laptop
