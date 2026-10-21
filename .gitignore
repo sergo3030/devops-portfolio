@@ -14,6 +14,9 @@ secrets/
 *.tfstate.*
 crash.log
 *.tfplan
+tfplan
+tfplan[0-9]*
+# Saved plans hold sensitive values (alert email, account ID). Never commit them.
 override.tf
 override.tf.json
 # The lock file IS committed: do not ignore .terraform.lock.hcl
