@@ -123,7 +123,153 @@ experience:
           for historical retention.
         approved: true
 
-case_studies: []
+# Approved wording. employer_approval stays pending until the employer has agreed to\n# publication: a pending case study is never published.
+case_studies:
+  - id: gateway-api-cilium-migration
+    title: "Replacing the Ingress controller and the CNI with Gateway API on Cilium"
+    employer_approval: pending
+    approved: true
+    summary:
+      text: >-
+        The on-prem Kubernetes cluster relied on the Ingress NGINX controller, which is being
+        retired, on a Flannel CNI and on a separate load-balancing component. I replaced all of
+        them with Gateway API running on Cilium, in one planned cutover.
+      approved: true
+    sections:
+      - heading: "Context"
+        approved: true
+        paragraphs:
+          - text: >-
+              The cluster runs on bare metal, so ingress, load balancing and pod networking
+              were three separate pieces. The Ingress NGINX controller is being retired
+              upstream, which forced a replacement. I treated that as a chance to simplify the
+              stack rather than swap one ingress controller for another.
+            approved: true
+      - heading: "Evaluation and decision"
+        approved: true
+        paragraphs:
+          - text: >-
+              I compared the main Gateway API implementations on a bare-metal cluster: Envoy
+              Gateway, Cilium, NGINX Gateway Fabric, Traefik and Istio. I argued for going
+              further than a like-for-like Gateway rollout: replacing Flannel with Cilium
+              consolidates networking, load balancing and the gateway into one eBPF-based
+              stack, and removes the need for a separate load-balancer tool.
+            approved: true
+      - heading: "Execution"
+        approved: true
+        paragraphs:
+          - text: >-
+              I planned and ran the cutover myself, and chose a short planned downtime over
+              the riskier in-place CNI migration. Nodes were cordoned and drained and VM
+              snapshots taken. I then removed Flannel and kube-proxy, rebooted the cluster,
+              deployed Cilium with its eBPF kube-proxy replacement, load-balancer IP pools and
+              L2 announcements, and recovered the dependent services (DNS and the secrets
+              manager). One judgment call: I skipped an in-progress snapshot of a very large
+              storage volume once the nodes were drained and the VM snapshots covered recovery.
+            approved: true
+      - heading: "Decommissioning kube-proxy"
+        approved: true
+        paragraphs:
+          - text: >-
+              Afterwards I verified that the kube-proxy replacement and socket load-balancing
+              coverage were fully active, found stale iptables rules that kube-proxy had left
+              behind, removed its DaemonSet and RBAC, and flushed the leftover chains on every
+              node. Gateway API on Cilium now replaces Ingress ahead of the upstream
+              retirement.
+            approved: true
+
+  - id: kubernetes-upgrade-program
+    title: "A repeatable Kubernetes upgrade program, from 1.31 to 1.35"
+    employer_approval: pending
+    approved: true
+    summary:
+      text: >-
+        I own the cluster's minor-version upgrades end to end. Two full cycles took the cluster
+        from 1.31 to 1.35, each with its add-ons upgraded in a planned order and verified
+        afterwards.
+      approved: true
+    sections:
+      - heading: "Scope"
+        approved: true
+        paragraphs:
+          - text: >-
+              Each cycle covers the cluster and its dependent components: Cilium, Vault,
+              cert-manager, CoreDNS, the Elastic stack operator and others. Every component has
+              an exact before-and-after version, and the upgrades are applied through a
+              version-pinned helmfile container, so the plan is reviewable and repeatable.
+            approved: true
+      - heading: "Reducing risk"
+        approved: true
+        paragraphs:
+          - text: >-
+              In the second cycle I upgraded the Elastic operator before Kubernetes to isolate
+              its risk, audited deprecated APIs with kubent, and checked that every node used
+              cgroup v2 before the release whose kubelet refuses to start on cgroup v1. I also
+              found a kubelet flag removed in that release and replaced it by pinning the
+              container runtime's pause image explicitly on every node.
+            approved: true
+      - heading: "Rollout and verification"
+        approved: true
+        paragraphs:
+          - text: >-
+              Nodes were upgraded in stages, with the control plane last and the secrets-manager
+              host deliberately held back. I agreed the timing with the IT team ahead of time
+              for a dependent service, and verified each step through ArgoCD sync status and
+              the metric that counts requests to deprecated APIs.
+            approved: true
+
+  - id: metrics-and-log-pipelines
+    title: "Metrics and log pipelines for a Kubernetes platform and its devices"
+    employer_approval: pending
+    approved: true
+    summary:
+      text: >-
+        I built the cluster's metrics path and own the centralized logging platform. The designs
+        favour low overhead on the cluster and on small devices, and keep data durable when the
+        cluster is rebuilt.
+      approved: true
+    sections:
+      - heading: "Metrics"
+        approved: true
+        paragraphs:
+          - text: >-
+              Cluster monitoring runs Prometheus in Agent Mode as a stateless shipper that
+              remote-writes to an external VM running Prometheus, Grafana, Nginx and
+              node-exporter under Docker Compose. That saves memory and CPU on the worker nodes
+              and keeps metrics when the cluster is recreated. Grafana uses LDAP single sign-on
+              and email alerting.
+            approved: true
+      - heading: "Log schema"
+        approved: true
+        paragraphs:
+          - text: >-
+              Device logs are shipped by independent collectors, so there is no single place to
+              control data before indexing. I made Elasticsearch ingest pipelines the
+              normalization layer, and fixed a schema break, where a monitoring field changed
+              from a list of numbers to an object across a software version, with a Painless
+              script.
+            approved: true
+      - heading: "Index design"
+        approved: true
+        paragraphs:
+          - text: >-
+              After comparing the options, I moved from a single index to monthly indices for
+              better query performance on recent data and better scalability, accepting
+              periodic reindex maintenance. I reindexed the historical data, handled a
+              daylight-saving clock change in the middle of the migration, and worked around the
+              fact that aliases cannot be used for writes when the log shipper creates the
+              index.
+            approved: true
+      - heading: "Edge devices"
+        approved: true
+        paragraphs:
+          - text: >-
+              For resource-constrained edge devices I replaced a custom Rsyslog-to-Elasticsearch
+              pipeline with journald and the Vector collector, and added remote log access
+              through the systemd journal gateway behind Nginx. The goal was less logging
+              overhead on the device, not a like-for-like tool swap. I also carried out two
+              major EFK upgrades (8.17, 9.5).
+            approved: true
 
 languages:
   - { name: "Hebrew", approved: true }
