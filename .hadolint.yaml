@@ -1,0 +1,8 @@
+# Hadolint configuration. Every Dockerfile rule is on. Add an entry under `ignored` only with
+# a reason next to it.
+failure-threshold: warning
+ignored: []
+trustedRegistries:
+  - docker.io
+  - ghcr.io
+  - public.ecr.aws
