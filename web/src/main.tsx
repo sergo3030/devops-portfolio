@@ -1,7 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { apiBase } from './config';
 import { loadSnapshot } from './content';
+import { Root } from './Root';
 import './styles/tokens.css';
 import './styles/global.css';
 
@@ -10,6 +11,6 @@ if (!root) throw new Error('Missing #root element');
 
 createRoot(root).render(
   <StrictMode>
-    <App content={loadSnapshot()} />
+    <Root snapshot={loadSnapshot()} apiBase={apiBase()} />
   </StrictMode>,
 );
