@@ -2,6 +2,34 @@
 
 mock_provider "github" {}
 
+variables {
+  aws_account_id = "123456789012" # fake, for the mocked tests only
+}
+
+run "aws_actions_are_allowed_and_the_account_id_is_a_variable_not_a_secret" {
+  command = plan
+
+  assert {
+    condition     = contains(github_actions_repository_permissions.this.allowed_actions_config[0].patterns_allowed, "aws-actions/configure-aws-credentials@*")
+    error_message = "the AWS credentials action must be on the allowlist"
+  }
+
+  assert {
+    condition     = github_actions_variable.aws_account_id.variable_name == "AWS_ACCOUNT_ID"
+    error_message = "workflows read the account ID from the Actions variable AWS_ACCOUNT_ID"
+  }
+}
+
+run "bad_account_id_is_rejected" {
+  command = plan
+
+  variables {
+    aws_account_id = "not-an-account"
+  }
+
+  expect_failures = [var.aws_account_id]
+}
+
 run "only_rebase_merge_is_allowed" {
   command = plan
 

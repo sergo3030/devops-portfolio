@@ -30,6 +30,10 @@ reason, so nothing changes silently.
 | D17 | Only GitHub-owned actions plus an allowlist may run, and every action must be SHA-pinned (enforced by GitHub, not only by zizmor) | Supply-chain control. A new action is a reviewed change to `allowed_action_patterns` |
 | D18 | Fork PR approval and private vulnerability reporting are set with `gh api` and checked by `just github-settings-check` | No provider resource exists for them |
 
+| D19 | The AWS account ID reaches workflows as the GitHub Actions variable `AWS_ACCOUNT_ID`, set by OpenTofu from `TF_VAR_aws_account_id` | The role ARN needs it. This keeps the ID out of every file. It is a variable, not a secret, and the credentials action masks it in logs |
+| D20 | CI plans the bootstrap root with a placeholder alert email, and the Budget and anomaly subscription use `ignore_changes` | The email is personal and is not stored in GitHub. To change the email or thresholds, replace the two resources (see the bootstrap runbook). Drift on those attributes is not detected |
+| D21 | The `apply` role is created in task 8 with no resource permissions, only the prod state keys | The role that deploys from the protected environment never holds more than the code in the repository needs. Task 14 adds its permissions with the code that needs them |
+
 ## Verified OIDC subject formats (2026-10-21)
 
 Read from the claims of real GitHub OIDC tokens (audience `sts.amazonaws.com`, issuer

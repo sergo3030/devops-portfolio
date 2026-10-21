@@ -32,3 +32,8 @@ output "github_oidc_subject_prefix" {
   description = "Subject claim prefix the trust policies match."
   value       = local.github_sub_prefix
 }
+
+output "apply_role_arn" {
+  description = "Role for deployments from the protected prod environment."
+  value       = aws_iam_role.apply.arn
+}

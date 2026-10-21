@@ -56,7 +56,19 @@ variable "allowed_action_patterns" {
   default = [
     "astral-sh/setup-uv@*",
     "opentofu/setup-opentofu@*",
+    "aws-actions/configure-aws-credentials@*",
   ]
+}
+
+variable "aws_account_id" {
+  description = "AWS account ID, published to workflows as the Actions variable AWS_ACCOUNT_ID so it does not appear in any file. Pass it with TF_VAR_aws_account_id (read from `aws sts get-caller-identity`). It is not a secret, but it is kept out of the repository."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.aws_account_id))
+    error_message = "aws_account_id must be 12 digits."
+  }
 }
 
 variable "topics" {

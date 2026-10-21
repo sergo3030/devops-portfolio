@@ -76,6 +76,7 @@ resource "aws_iam_role_policy" "plan" {
           "dynamodb:List*",
           "budgets:ViewBudget",
           "budgets:DescribeBudgetAction*",
+          "budgets:ListTagsForResource",
           "ce:GetAnomalyMonitors",
           "ce:GetAnomalySubscriptions",
           "ce:ListTagsForResource",
@@ -138,6 +139,64 @@ resource "aws_iam_role_policy" "ecr_push" {
           "ecr:UploadLayerPart",
         ]
         Resource = local.ecr_repository_arn
+      },
+    ]
+  })
+}
+
+# ---------------------------------------------------------------- apply
+
+# Assumed only by a job that runs in the protected `prod` environment, which
+# needs the owner's approval first. It starts with NO resource permissions: only
+# the state of the prod root. The permissions for what the prod root manages
+# (ECR, Lambda, logs, its execution role) are added in task 14, next to the code
+# that needs them, so this role never holds more than the code in the repository.
+
+resource "aws_iam_role" "apply" {
+  name                 = "${var.name_prefix}-apply"
+  description          = "Deploys from the protected prod environment, after approval."
+  max_session_duration = 3600
+  permissions_boundary = aws_iam_policy.boundary.arn
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = local.oidc_provider_arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          (local.oidc_aud_key) = "sts.amazonaws.com"
+          (local.oidc_sub_key) = "${local.github_sub_prefix}:environment:prod"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "apply" {
+  #checkov:skip=CKV_AWS_355:No Resource "*" here: every statement is scoped to the prod state keys.
+  name = "apply-prod-state-only"
+  role = aws_iam_role.apply.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListOwnStatePrefix"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = local.bucket_arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["prod/*"] }
+        }
+      },
+      {
+        # State and its `.tflock` lock object live under the prod/ key prefix.
+        Sid      = "ReadWriteProdState"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${local.bucket_arn}/prod/*"
       },
     ]
   })

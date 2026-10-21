@@ -157,3 +157,53 @@ run "bad_email_is_rejected" {
 
   expect_failures = [var.budget_alert_email]
 }
+
+# ---------------------------------------------------------------- apply role
+
+run "apply_role_trusts_only_the_prod_environment" {
+  assert {
+    condition = (
+      jsondecode(aws_iam_role.apply.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"]
+      == "repo:sergo3030@61195883/devops-portfolio@1425913518:environment:prod"
+    )
+    error_message = "apply role must trust only the prod environment of this repository"
+  }
+
+  assert {
+    condition     = aws_iam_role.apply.permissions_boundary == aws_iam_policy.boundary.arn
+    error_message = "apply role must carry the permission boundary"
+  }
+}
+
+run "apply_role_can_only_touch_prod_state" {
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.apply.policy).Statement :
+      !contains(flatten([s.Resource]), "*")
+    ])
+    error_message = "no apply statement may use Resource *"
+  }
+
+  assert {
+    condition = (
+      jsondecode(aws_iam_role_policy.apply.policy).Statement[1].Resource
+      == "arn:aws:s3:::portfolio-tfstate-x7k2m9qd4t/prod/*"
+    )
+    error_message = "the apply role may only read and write the prod state keys"
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.apply.policy).Statement :
+      alltrue([for a in flatten([s.Action]) : startswith(a, "s3:")])
+    ])
+    error_message = "the apply role must have no permissions outside S3 state access until task 14"
+  }
+}
+
+run "plan_role_can_read_budget_tags" {
+  assert {
+    condition     = contains(jsondecode(aws_iam_role_policy.plan.policy).Statement[3].Action, "budgets:ListTagsForResource")
+    error_message = "the plan role needs budgets:ListTagsForResource to refresh the budget"
+  }
+}
