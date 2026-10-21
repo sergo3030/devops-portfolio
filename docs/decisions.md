@@ -19,7 +19,7 @@ reason, so nothing changes silently.
 | D9 | The `apply` role is created in task 8, not task 6 | It trusts the protected environment's OIDC claim, which can only be verified in task 8. It is also the most powerful role |
 | D10 | The `plan` role uses a custom read-only policy for the services in use, not `ReadOnlyAccess` | Least privilege. Missing read actions show up in the first CI plan (task 8) and are added then |
 | D11 | A permission boundary caps every project role: allowed services only, one region, expensive services denied | The cost-risk allowlist in IAM form. Checkov findings on the boundary are skipped with a stated reason |
-| D12 | Trust policies use the immutable subject format `repo:OWNER@OWNER_ID/REPO@REPO_ID:...` | Repositories created after 2026-07-15 use it. The `pull_request` form is inferred and verified in task 8 |
+| D12 | Trust policies use the immutable subject format `repo:OWNER@OWNER_ID/REPO@REPO_ID:...` | Repositories created after 2026-07-15 use it. All three contexts were verified from real tokens on 2026-10-21 (see below) |
 
 | D13 | Local bootstrap identity is the IAM user `portfolio-admin` (MFA, no keys) with `aws login` | Temporary credentials, no stored keys. Root stays unused. Needed again for teardown and the rebuild rehearsal |
 | D14 | Reserved concurrency cannot be set: the account's Lambda concurrent executions quota is 10 | AWS requires about 100 unreserved. The quota is adjustable. The limit of 10 acts as a natural cap while it stays low. See open items |
@@ -29,6 +29,25 @@ reason, so nothing changes silently.
 | D16 | Branch protection is a ruleset with no bypass actors. Break-glass is `ruleset_enforcement=disabled` applied from the laptop | The rules bind the owner too. The escape hatch is code, so it is reviewable and rehearsed |
 | D17 | Only GitHub-owned actions plus an allowlist may run, and every action must be SHA-pinned (enforced by GitHub, not only by zizmor) | Supply-chain control. A new action is a reviewed change to `allowed_action_patterns` |
 | D18 | Fork PR approval and private vulnerability reporting are set with `gh api` and checked by `just github-settings-check` | No provider resource exists for them |
+
+## Verified OIDC subject formats (2026-10-21)
+
+Read from the claims of real GitHub OIDC tokens (audience `sts.amazonaws.com`, issuer
+`https://token.actions.githubusercontent.com`), with a temporary diagnostic workflow
+that printed only the non-secret claims and was removed afterwards.
+
+| Where the job runs | `sub` claim | Trusted by |
+|---|---|---|
+| Pull request (same repository) | `repo:sergo3030@61195883/devops-portfolio@1425913518:pull_request` | `portfolio-plan` |
+| Push to `main` | `repo:sergo3030@61195883/devops-portfolio@1425913518:ref:refs/heads/main` | `portfolio-ecr-push` |
+| Job with `environment: prod` | `repo:sergo3030@61195883/devops-portfolio@1425913518:environment:prod` | `portfolio-apply` (task 8b) |
+
+Notes:
+- For the `prod` job the `environment` claim is `prod`, and the job only started after the
+  owner approved the deployment (recorded in the run's approvals).
+- The docs do not say whether fork pull requests receive OIDC tokens. Secrets are not passed
+  to fork workflows and `GITHUB_TOKEN` is read-only there. Not tested with a real fork, so
+  the plan workflow also skips fork pull requests explicitly.
 
 ## Open items (decided when the task that needs them starts)
 
