@@ -30,7 +30,8 @@ skills:
     items: [Cilium, Gateway API, NGINX, NFS CSI]
     approved: true
   - category: "Observability"
-    items: [Prometheus, Thanos, Grafana, Elasticsearch, Kibana, Filebeat, Vector, Journald, Rsyslog]
+    items:
+      [Prometheus, Thanos, Grafana, Elasticsearch, Kibana, Logstash, Filebeat, Vector, Journald, Rsyslog]
     approved: true
   - category: "Security & Secrets"
     items: [HashiCorp Vault, OpenLDAP, GitLeaks, SonarQube]
@@ -51,7 +52,77 @@ skills:
     items: [Git, Port IDP, HashiCorp Consul, Mosquitto (MQTT), Claude, GitHub Copilot]
     approved: true
 
-experience: []
+experience:
+  - employer: "Chain Reaction"
+    role: "DevOps Engineer"
+    start: "2024-03"
+    end: "present"
+    approved: true
+    bullets:
+      - text: >-
+          Led the replacement of the retiring Ingress NGINX controller on the on-prem
+          Kubernetes cluster with Gateway API on Cilium, also replacing the Flannel CNI to
+          consolidate networking, load-balancing, and ingress into a single eBPF-based stack.
+        approved: true
+      - text: >-
+          Upgraded the Kubernetes cluster from 1.31 to 1.35 (four minor versions) along with
+          its add-ons (Cilium, Vault, cert-manager), auditing deprecated APIs with kubent and
+          staging node rollouts to limit risk.
+        approved: true
+      - text: >-
+          Designed and maintain a Python/FastAPI microservice orchestrating shared hardware
+          test infrastructure: asynchronous processing through a priority queue, LDAP/JWT auth
+          with team-based permissions, an SMTP notification channel, and self-healing sync with
+          Port IDP (Internal Developer Platform).
+        approved: true
+      - text: >-
+          Bootstrapped OpenBMC/Yocto firmware for BMC (Baseboard Management Controller)
+          devices, including A/B OTA design, hands-on flash-hardware verification, and a
+          QEMU-based test harness.
+        approved: true
+      - text: >-
+          Built cluster monitoring with Prometheus Agent Mode shipping to an external Grafana
+          VM (LDAP SSO, email alerting), keeping metrics durable across cluster rebuilds with
+          minimal overhead on worker nodes.
+        approved: true
+      - text: >-
+          Own the centralized observability platform (Elasticsearch, Kibana): designed index
+          schemas and ingest pipelines to normalize device logs shipped via Rsyslog, streamed
+          Kubernetes and product logs via Filebeat, and carried out two major EFK upgrades
+          (8.17, 9.5).
+        approved: true
+      - text: >-
+          Drove adoption of code-quality and security tooling (SonarQube, GitLeaks, ruff/mypy)
+          across 10+ repositories, and built reusable CI/CD infrastructure (GitHub Actions
+          composite actions, Docker build images).
+        approved: true
+  - employer: "Israel Defense Forces"
+    role: "DevOps Engineer"
+    start: "2018-12"
+    end: "2022-01"
+    approved: true
+    bullets:
+      - text: >-
+          Migrated the monitoring stack (Grafana, Prometheus, Kibana, Logstash) from VMs to
+          Kubernetes using Helm charts.
+        approved: true
+      - text: >-
+          Contributed to resolving a Prometheus overload (inefficient scraping, slow
+          exporters) through query-log analysis and scrape tuning, then re-architected into
+          per-exporter sharded instances unified under Thanos with downsampled long-term
+          storage.
+        approved: true
+      - text: >-
+          Built two Python/FastAPI microservices that export metrics from a restricted-access
+          environment: one converts exporter metrics to JSON for a security-validation layer,
+          the other reconstitutes validated JSON into Prometheus exposition format.
+        approved: true
+      - text: >-
+          Designed an HTTP webhook used as a Grafana notification channel that restructured
+          native alerts into the team's alert convention, then fed them into Elasticsearch
+          for historical retention.
+        approved: true
+
 case_studies: []
 
 languages:
