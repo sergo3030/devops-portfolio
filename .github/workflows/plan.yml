@@ -48,7 +48,8 @@ jobs:
       - name: Assume the plan role
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/portfolio-plan
+          # A secret on purpose: GitHub masks it everywhere in the public logs.
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-plan
           role-session-name: plan-${{ github.run_id }}
           aws-region: us-east-1
 

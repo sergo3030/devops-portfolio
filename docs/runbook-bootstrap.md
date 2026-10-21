@@ -67,7 +67,8 @@ Both resources are free and are recreated in seconds.
 | `plan.yml` | `portfolio-plan` | Pull requests of this repository that change `infra/bootstrap/**` | `tofu plan` with a placeholder email. The full plan is in the job log, where the account ID is masked. The job summary shows only the one-line result. Fork pull requests are skipped. |
 | `deploy.yml` | `portfolio-apply` | Manual run, after the owner approves the `prod` environment | Today only proves the gate (prints the assumed role). Real deployment is task 15. |
 
-The workflows read the account ID from the Actions variable `AWS_ACCOUNT_ID`. If a plan
+The workflows read the account ID from the Actions secret `AWS_ACCOUNT_ID` (masked in
+logs by GitHub, see decision D19). If a plan
 fails with `AccessDenied`, a read action is missing from the plan role: add it to
 `roles.tf`, apply the bootstrap root locally, and re-run the job.
 

@@ -6,7 +6,7 @@ variables {
   aws_account_id = "123456789012" # fake, for the mocked tests only
 }
 
-run "aws_actions_are_allowed_and_the_account_id_is_a_variable_not_a_secret" {
+run "aws_actions_are_allowed_and_the_account_id_is_a_masked_secret" {
   command = plan
 
   assert {
@@ -15,8 +15,8 @@ run "aws_actions_are_allowed_and_the_account_id_is_a_variable_not_a_secret" {
   }
 
   assert {
-    condition     = github_actions_variable.aws_account_id.variable_name == "AWS_ACCOUNT_ID"
-    error_message = "workflows read the account ID from the Actions variable AWS_ACCOUNT_ID"
+    condition     = github_actions_secret.aws_account_id.secret_name == "AWS_ACCOUNT_ID"
+    error_message = "workflows read the account ID from the Actions secret AWS_ACCOUNT_ID, so GitHub masks it in logs"
   }
 }
 

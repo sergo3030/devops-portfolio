@@ -24,12 +24,16 @@ resource "github_workflow_repository_permissions" "this" {
 }
 
 # Lets workflows build the role ARN without the account ID being written in a file:
-#   arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/portfolio-plan
-# A variable, not a secret. The credentials action masks the ID in logs.
-resource "github_actions_variable" "aws_account_id" {
-  repository    = github_repository.this.name
-  variable_name = "AWS_ACCOUNT_ID"
-  value         = var.aws_account_id
+#   arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-plan
+# The ID is not a credential. It is a secret only because GitHub masks secret
+# values everywhere in logs, including the step headers that print expanded
+# inputs. A plain Actions variable is printed in clear in a public repository's
+# logs, and neither the credentials action nor `::add-mask::` can hide it from the
+# step that first uses it.
+resource "github_actions_secret" "aws_account_id" {
+  repository  = github_repository.this.name
+  secret_name = "AWS_ACCOUNT_ID"
+  value       = var.aws_account_id
 }
 
 # Dependabot opens pull requests for vulnerable dependencies.

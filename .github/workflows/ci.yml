@@ -36,6 +36,14 @@ jobs:
       - name: zizmor
         run: uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
 
+      - name: Account ID must come from the masked secret
+        run: |
+          # A variable or a hardcoded ARN would print the account ID in public logs.
+          if grep -rnE 'vars\.AWS_ACCOUNT_ID|arn:aws:[a-z0-9-]*::[0-9]{12}' --exclude=ci.yml .github/workflows; then
+            echo "use secrets.AWS_ACCOUNT_ID, never a variable or a literal ARN" >&2
+            exit 1
+          fi
+
       - name: dependabot.yml schema
         run: uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
