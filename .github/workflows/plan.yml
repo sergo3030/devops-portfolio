@@ -1,0 +1,70 @@
+name: plan
+
+# `tofu plan` of the bootstrap root on pull requests, through the read-only
+# portfolio-plan role. No stored credentials: the job trades its short-lived GitHub
+# OIDC token for AWS credentials. Only pull requests from this repository run it.
+# Fork pull requests get no credentials (see the `if` below and docs/decisions.md).
+
+on:
+  pull_request:
+    paths:
+      - "infra/bootstrap/**"
+      - ".github/workflows/plan.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: plan (bootstrap)
+    # Explicit guard, on top of GitHub withholding secrets from fork workflows.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read # default, stated for clarity
+      id-token: write # trade the OIDC token for AWS credentials, nothing else
+    env:
+      TF_IN_AUTOMATION: "true"
+      # A placeholder: the real alert email is not stored in GitHub. The Budget and
+      # the anomaly subscription ignore it (see infra/bootstrap/cost_guards.tf).
+      TF_VAR_budget_alert_email: ci-placeholder@example.invalid
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.13.1"
+          tofu_wrapper: false
+
+      - name: Assume the plan role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/portfolio-plan
+          role-session-name: plan-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: tofu init
+        working-directory: infra/bootstrap
+        run: tofu init -input=false
+
+      - name: tofu plan
+        working-directory: infra/bootstrap
+        run: tofu plan -input=false -no-color -lock-timeout=60s | tee "${RUNNER_TEMP}/plan.txt"
+
+      - name: Plan summary
+        if: always()
+        run: |
+          # Only the one-line result: the full plan stays in the (masked) job log.
+          {
+            echo "### tofu plan (bootstrap)"
+            grep -E '^(Plan:|No changes)' "${RUNNER_TEMP}/plan.txt" || echo "No plan result (see the job log)."
+          } >> "${GITHUB_STEP_SUMMARY}"
