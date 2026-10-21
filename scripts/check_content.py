@@ -244,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.build:
+        args.build.parent.mkdir(parents=True, exist_ok=True)
         args.build.write_text(
             json.dumps(build_public(content), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )

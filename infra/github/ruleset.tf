@@ -16,8 +16,10 @@ locals {
     "opentofu (fmt, validate, test)",
     "analyze (python)",
     "analyze (actions)",
+    "analyze (javascript-typescript)",
     "review (new dependencies)",
     "image (hadolint, build, smoke)",
+    "web (lint, test, build)",
   ]
 }
 

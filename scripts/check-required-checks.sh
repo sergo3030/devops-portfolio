@@ -14,8 +14,8 @@ while IFS= read -r name; do
   fi
 done < <(grep -h '^    name: ' .github/workflows/ci.yml .github/workflows/dependency-review.yml | sed 's/^    name: //')
 
-# CodeQL job names come from a matrix, so check the two languages explicitly.
-for language in python actions; do
+# CodeQL job names come from a matrix, so check the languages explicitly.
+for language in python actions javascript-typescript; do
   if ! grep -qF "\"analyze (${language})\"" "${ruleset}"; then
     echo "job 'analyze (${language})' is not listed as a required check in ${ruleset}" >&2
     status=1

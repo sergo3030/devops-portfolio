@@ -74,6 +74,22 @@ api-dev: content-build
 hadolint:
     hadolint app/Dockerfile
 
+# Export the JSON Schema of the published content (the contract between the API and the web app)
+schema-export:
+    cd app && uv run python -m portfolio_api.schema_export
+
+# Build the content snapshot that the site embeds (approved lines only)
+web-content:
+    uv run --project app python scripts/check_content.py --build web/src/generated/content.json
+
+# Run the site in development. Start `just api-dev` in another terminal for live data.
+web-dev: web-content
+    cd web && npm run dev
+
+# All web checks, the same as CI
+web-check: web-content
+    cd web && npm ci && npm run lint && npm run format && npm run typecheck && npm test && npm run build && npm run check:size
+
 # Check the public content including the PRIVATE denylist (not available in CI)
 content-check:
     uv run --project app python scripts/check_content.py

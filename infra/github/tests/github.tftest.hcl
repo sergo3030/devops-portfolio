@@ -159,8 +159,10 @@ run "ruleset_requires_every_ci_job" {
       "opentofu (fmt, validate, test)",
       "analyze (python)",
       "analyze (actions)",
+      "analyze (javascript-typescript)",
       "review (new dependencies)",
       "image (hadolint, build, smoke)",
+      "web (lint, test, build)",
     ])
     error_message = "required checks must match the CI job names exactly"
   }
