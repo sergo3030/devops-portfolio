@@ -75,6 +75,9 @@ jobs:
       - name: ruff format
         run: uv run ruff format --check . ../scripts
 
+      - name: mypy (strict)
+        run: uv run mypy
+
       - name: pytest
         run: uv run pytest
 

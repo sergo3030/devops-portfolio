@@ -1,16 +1,23 @@
 [project]
 name = "portfolio-api"
-version = "0.0.0"
-description = "FastAPI service for the portfolio (placeholder until task 10)"
+version = "0.1.0"
+description = "Read-only FastAPI service that serves the portfolio's published content"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi==0.143.0",
+    "pydantic==2.14.0",
+    "uvicorn==0.54.0",
+]
 
 [dependency-groups]
 dev = [
+    "httpx==0.28.1",
     "jsonschema==4.26.0",
+    "mypy==2.4.0",
     "pytest==9.1.1",
     "pyyaml==6.0.3",
     "ruff==0.17.0",
+    "types-jsonschema==4.26.0.20261006",
     "types-pyyaml==6.0.12.20260815",
 ]
 
@@ -24,5 +31,19 @@ select = ["E", "F", "I", "B", "UP", "S"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
 
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["portfolio_api", "../scripts"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+# Warnings are errors, except one known deprecation: Starlette now prefers the new `httpx2`
+# package for its test client. httpx2 is brand new (releases days old), so the stable httpx is
+# kept on purpose. Revisit when Starlette removes httpx support (see docs/decisions.md).
+filterwarnings = [
+    "error",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]

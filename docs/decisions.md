@@ -36,6 +36,9 @@ reason, so nothing changes silently.
 
 | D22 | The `plan` workflow runs only when `infra/bootstrap/**` changes, so it is not a required check. Its job summary shows only the plan's one-line result | A path-filtered check that does not run would block unrelated pull requests. A plan in a public summary could expose the account ID |
 
+| D23 | The API's test client keeps the stable `httpx 0.28.1`, and pytest ignores only Starlette's one deprecation notice about it | Starlette now prefers `httpx2`, a new package from the Pydantic organisation whose newest releases are days old. Revisit when Starlette removes httpx support. All other warnings are errors |
+| D24 | The API is a plain module-level `app` with the lifespan loading and validating the content, routers in their own module, a singleton content store and `uvicorn.run` under `__main__`. A missing or invalid content file aborts the start-up. Docs routes are off unless `ENABLE_DOCS=1` | This is the layout the project owner prefers for FastAPI services. A broken content build must not serve, and the lifespan is the idiomatic place for start-up work (task 21 reuses it for the database client). Typing is kept: a content store and a `get_content` dependency instead of an untyped `app.state`, so tests override the dependency or point `CONTENT_FILE` at a file. A first version used a factory function with everything nested in it: it failed fast just as well, but was harder to read and needed `--factory` |
+
 ## Verified OIDC subject formats (2026-10-21)
 
 Read from the claims of real GitHub OIDC tokens (audience `sts.amazonaws.com`, issuer
