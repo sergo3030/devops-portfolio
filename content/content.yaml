@@ -7,13 +7,54 @@
 version: 1
 
 profile:
-  name: { text: "Sergey Rudich", approved: false }
-  title: { text: "DevOps Engineer", approved: false }
-  summary: { text: "Draft pending the owner's review.", approved: false }
-  country: { text: "Israel", approved: false }
+  name: { text: "Sergey Rudich", approved: true }
+  title: { text: "DevOps Engineer", approved: true }
+  summary:
+    text: >-
+      DevOps Engineer with about 5 years of hands-on ownership across Kubernetes platform
+      engineering, observability, CI/CD, and embedded firmware. Drive infrastructure decisions
+      end-to-end, from architecture evaluation through production execution, and build internal
+      microservices and developer tooling from scratch.
+    approved: true
+  country: { text: "Israel", approved: true }
 
-links: []
-skills: []
+links:
+  - { label: "LinkedIn", url: "https://www.linkedin.com/in/sergo-rudich", approved: true }
+  - { label: "GitHub", url: "https://github.com/sergo3030", approved: true }
+
+skills:
+  - category: "Containers & Orchestration"
+    items: [Kubernetes, Helm, Helmfile, ArgoCD, Docker, Docker Compose, OpenShift]
+    approved: true
+  - category: "Cluster Networking & Storage"
+    items: [Cilium, Gateway API, NGINX, NFS CSI]
+    approved: true
+  - category: "Observability"
+    items: [Prometheus, Thanos, Grafana, Elasticsearch, Kibana, Filebeat, Vector, Journald, Rsyslog]
+    approved: true
+  - category: "Security & Secrets"
+    items: [HashiCorp Vault, OpenLDAP, GitLeaks, SonarQube]
+    approved: true
+  - category: "Programming Languages and Frameworks"
+    items: [Bash, Python, FastAPI]
+    approved: true
+  - category: "CI/CD and Artifact Management"
+    items: [GitHub Actions, Jenkins, Maven, Nexus]
+    approved: true
+  - category: "Embedded"
+    items: [Yocto / OpenBMC, QEMU, pi-gen, Mender]
+    approved: true
+  - category: "Configuration Management"
+    items: [Ansible]
+    approved: true
+  - category: "Other"
+    items: [Git, Port IDP, HashiCorp Consul, Mosquitto (MQTT), Claude, GitHub Copilot]
+    approved: true
+
 experience: []
 case_studies: []
-languages: []
+
+languages:
+  - { name: "Hebrew", approved: true }
+  - { name: "English", approved: true }
+  - { name: "Ukrainian", approved: true }
