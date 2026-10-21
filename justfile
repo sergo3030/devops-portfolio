@@ -59,7 +59,16 @@ test-app:
     cd app && uv sync --locked
     cd app && uv run ruff check . ../scripts
     cd app && uv run ruff format --check . ../scripts
+    cd app && uv run mypy
     cd app && uv run pytest
+
+# Build the published content (approved lines only) that the API serves
+content-build:
+    uv run --project app python scripts/check_content.py --build app/content.public.json
+
+# Run the API natively on the Lambda Web Adapter's default port (no Docker needed)
+api-dev: content-build
+    cd app && uv run python -m portfolio_api.main
 
 # Check the public content including the PRIVATE denylist (not available in CI)
 content-check:
