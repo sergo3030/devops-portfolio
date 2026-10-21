@@ -55,5 +55,7 @@ Only after the `prod` root is destroyed and `just verify-clean` is clean.
 
 - The Resource Groups Tagging API does not list IAM roles. `verify-clean` must also
   list roles by the `portfolio-` name prefix.
-- The `pull_request` OIDC subject format is inferred and is verified in task 8.
+- The OIDC subject formats are verified (see decisions.md). They contain the owner and
+  repository names as well as the IDs, so after a rename or transfer re-read the claims and
+  update `github_owner` and `github_repo` in the bootstrap variables.
 - Lambda concurrent executions is 10 on this account (see decisions.md).

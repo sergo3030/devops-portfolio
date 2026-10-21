@@ -7,8 +7,8 @@ locals {
 
   # Immutable OIDC subject format (repositories created after 2026-07-15):
   #   repo:OWNER@OWNER_ID/REPO@REPO_ID:<context>
-  # The pull_request context is inferred from the documented pattern and is
-  # verified in task 8 with the OIDC debugger.
+  # The contexts used below (pull_request, ref:refs/heads/main, environment:prod)
+  # were verified from real tokens, see docs/decisions.md.
   github_sub_prefix = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}"
 
   oidc_url          = "token.actions.githubusercontent.com"
