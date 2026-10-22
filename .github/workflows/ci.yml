@@ -47,6 +47,9 @@ jobs:
       - name: dependabot.yml schema
         run: uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
+      - name: Image push script tests (fake aws and docker)
+        run: bash scripts/test-ecr-image.sh
+
   python:
     name: python (ruff, pytest)
     runs-on: ubuntu-24.04

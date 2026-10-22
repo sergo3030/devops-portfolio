@@ -1,0 +1,90 @@
+name: build
+
+# Builds the API image after a merge to main and pushes it to ECR through the ecr-push role.
+# The image is smoke-tested first, and the one that passed is the one that is pushed. The only
+# tag is sha-<commit> (the repository's tags are immutable), and the job reports the digest that
+# the deploy uses. Scanning with Trivy, the approval gate and the deploy itself are task 15.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "content/**"
+      - "scripts/check_content.py"
+      - "scripts/ecr-image.sh"
+      - "scripts/smoke-test-container.sh"
+      - "docker-compose.yml"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-image
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build (image)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      digest: ${{ steps.report.outputs.digest }}
+      tag: ${{ steps.report.outputs.tag }}
+    permissions:
+      contents: read # default, stated for clarity
+      id-token: write # trade the OIDC token for AWS credentials, nothing else
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: portfolio-api
+      GIT_SHA: ${{ github.sha }}
+      # Lambda rejects an image index, so switch provenance attestations off.
+      BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+      APP_VERSION: "0.0.0-dev"
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Assume the ecr-push role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          # A secret on purpose: GitHub masks it everywhere in the public logs.
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-ecr-push
+          role-session-name: build-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Is there already an image for this commit?
+        id: existing
+        run: bash scripts/ecr-image.sh lookup
+
+      - name: Build the image and start the stack
+        if: steps.existing.outputs.found != 'true'
+        run: docker compose up --build --detach --wait --wait-timeout 90
+
+      - name: Smoke test
+        if: steps.existing.outputs.found != 'true'
+        run: bash scripts/smoke-test-container.sh
+
+      - name: Push the image that passed the smoke test
+        if: steps.existing.outputs.found != 'true'
+        env:
+          # The registry host contains the account ID, which GitHub masks because it is a secret.
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" bash scripts/ecr-image.sh push
+
+      - name: Report the digest ECR holds
+        id: report
+        run: bash scripts/ecr-image.sh report
+
+      - name: Container logs on failure
+        if: failure() && steps.existing.outputs.found != 'true'
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always() && steps.existing.outputs.found != 'true'
+        run: docker compose down --volumes

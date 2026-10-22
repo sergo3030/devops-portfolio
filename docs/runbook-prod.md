@@ -34,13 +34,37 @@ aws logout --profile portfolio-bootstrap
 ```
 
 1. First apply, no image: repository, lifecycle policy, log group, role and its policy.
-2. The `build` workflow pushes an image to the repository and prints its digest (task 14b).
+2. The `build` workflow pushes an image to the repository and reports its digest (see
+   "Building the image" below).
 3. Second apply, with the digest: `tofu -chdir=infra/prod plan -var image_digest=sha256:... -out=tfplan`.
    The function URL is in the output `function_url`. Keep it out of the site until task 16.
 
 Pull requests that change `infra/prod/**` run `tofu plan` through the read-only role
 (`plan.yml`). It plans with the digest that is deployed now (read from the state output), so the
 plan shows only what the pull request changes.
+
+## Building the image (task 14b)
+
+`.github/workflows/build.yml` runs after a merge to `main` that changes the image's inputs (and
+on demand from the Actions tab, from `main`). It assumes the `portfolio-ecr-push` role, which
+trusts only `refs/heads/main`, so it cannot run from a branch. It builds with Compose, runs the
+smoke test, and pushes **the image that passed** as `sha-<full commit hash>`. The tag is the
+only one: the repository's tags are immutable. If the commit already has an image, the job
+reuses it instead of rebuilding (builds are not reproducible bit for bit, so the first image
+for a commit stays canonical). The job summary shows the tag, the digest and the manifest type;
+the digest is what the deploy uses (`image_digest`). An image index or manifest list is
+rejected, because Lambda cannot run one.
+
+Find the digest of an image later (needs the AWS login, or the ecr-push role in a workflow):
+
+```bash
+aws ecr describe-images --repository-name portfolio-api \
+  --query 'sort_by(imageDetails,&imagePushedAt)[-1].[imageTags[0],imageDigest]' --output text
+```
+
+`scripts/ecr-image.sh` holds the ECR steps and `scripts/test-ecr-image.sh` tests them with fake
+`aws` and `docker` commands (`just test-scripts`, and in CI). Trivy, the approval gate and the
+deploy itself arrive with task 15.
 
 ## Public URL: two statements
 
