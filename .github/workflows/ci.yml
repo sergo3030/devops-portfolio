@@ -158,7 +158,7 @@ jobs:
 
       - name: Validate and test each root (no credentials needed)
         run: |
-          for root in infra/bootstrap infra/github; do
+          for root in infra/bootstrap infra/github infra/prod; do
             echo "::group::${root}"
             tofu -chdir="${root}" init -backend=false -input=false
             tofu -chdir="${root}" validate

@@ -33,7 +33,7 @@ tofu-check:
     tofu fmt -check -recursive -diff infra
     grep -q 'prevent_destroy = true' infra/github/repository.tf
     bash scripts/check-required-checks.sh
-    for root in infra/bootstrap infra/github; do \
+    for root in infra/bootstrap infra/github infra/prod; do \
       tofu -chdir="$root" init -backend=false -input=false && \
       tofu -chdir="$root" validate && \
       tofu -chdir="$root" test; \

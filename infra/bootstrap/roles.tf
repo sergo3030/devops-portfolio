@@ -147,10 +147,10 @@ resource "aws_iam_role_policy" "ecr_push" {
 # ---------------------------------------------------------------- apply
 
 # Assumed only by a job that runs in the protected `prod` environment, which
-# needs the owner's approval first. It starts with NO resource permissions: only
-# the state of the prod root. The permissions for what the prod root manages
-# (ECR, Lambda, logs, its execution role) are added in task 14, next to the code
-# that needs them, so this role never holds more than the code in the repository.
+# needs the owner's approval first. It holds the state of the prod root and, since
+# task 14, the permissions for exactly what the prod root manages (ECR, Lambda,
+# logs, its execution role), so this role never holds more than the code in the
+# repository needs. Both live in separate policies below.
 
 resource "aws_iam_role" "apply" {
   name                 = "${var.name_prefix}-apply"
@@ -197,6 +197,145 @@ resource "aws_iam_role_policy" "apply" {
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = "${local.bucket_arn}/prod/*"
+      },
+    ]
+  })
+}
+
+# What the prod root manages (infra/prod): the ECR repository, the function and its URL, the
+# log group, and the function's execution role. Every statement is limited to names that start
+# with the project prefix. There is no iam:AttachRolePolicy, so a role can only get inline
+# policies, and no iam:PutRolePermissionsBoundary or iam:DeleteRolePermissionsBoundary, so
+# the boundary cannot be removed. The role names the policy covers (<prefix>-prod-*) exclude
+# plan, apply and ecr-push, so this role cannot change any role of the bootstrap root.
+locals {
+  prod_function_arn  = "arn:${data.aws_partition.current.partition}:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${var.name_prefix}-*"
+  prod_log_group_arn = "arn:${data.aws_partition.current.partition}:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.name_prefix}-*"
+  prod_role_arn      = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-prod-*"
+}
+
+resource "aws_iam_role_policy" "apply_prod_resources" {
+  #checkov:skip=CKV_AWS_355:The only Resource "*" is logs:DescribeLogGroups, which does not support resource-level permissions. Every other statement names the project's resources.
+  #checkov:skip=CKV_AWS_290:Write actions are limited to resources that start with the project prefix, and the apply role is assumable only after the owner's approval.
+  #checkov:skip=CKV_AWS_289:The role cannot change permissions of any role outside <prefix>-prod-*, cannot attach managed policies and cannot touch permission boundaries.
+  #checkov:skip=CKV_AWS_287:No credentials are exposed: the role only manages resources of the project.
+  #checkov:skip=CKV_AWS_286:Privilege escalation is limited to <prefix>-prod-* roles, which are created only with the permission boundary.
+  name = "apply-prod-resources"
+  role = aws_iam_role.apply.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ManageProdRepository"
+        Effect = "Allow"
+        Action = [
+          "ecr:CreateRepository",
+          "ecr:DeleteRepository",
+          "ecr:DescribeRepositories",
+          "ecr:DescribeImages",
+          "ecr:ListImages",
+          "ecr:ListTagsForResource",
+          "ecr:TagResource",
+          "ecr:UntagResource",
+          "ecr:PutImageTagMutability",
+          "ecr:PutImageScanningConfiguration",
+          "ecr:PutLifecyclePolicy",
+          "ecr:GetLifecyclePolicy",
+          "ecr:DeleteLifecyclePolicy",
+          "ecr:GetRepositoryPolicy",
+          # Deleting the repository with its images (force_delete) when tearing down.
+          "ecr:BatchDeleteImage",
+          # Lambda checks that the deploying principal can read the image it is given.
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Resource = local.ecr_repository_arn
+      },
+      {
+        Sid    = "ManageProdLogGroup"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:PutRetentionPolicy",
+          "logs:DeleteRetentionPolicy",
+          "logs:TagResource",
+          "logs:UntagResource",
+          "logs:TagLogGroup",
+          "logs:UntagLogGroup",
+          "logs:ListTagsForResource",
+          "logs:ListTagsLogGroup",
+        ]
+        Resource = [local.prod_log_group_arn, "${local.prod_log_group_arn}:*"]
+      },
+      {
+        # DescribeLogGroups does not support resource-level permissions.
+        Sid      = "FindLogGroups"
+        Effect   = "Allow"
+        Action   = "logs:DescribeLogGroups"
+        Resource = "*"
+      },
+      {
+        Sid    = "ManageProdFunction"
+        Effect = "Allow"
+        Action = [
+          "lambda:CreateFunction",
+          "lambda:DeleteFunction",
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:PutFunctionConcurrency",
+          "lambda:DeleteFunctionConcurrency",
+          "lambda:CreateFunctionUrlConfig",
+          "lambda:UpdateFunctionUrlConfig",
+          "lambda:DeleteFunctionUrlConfig",
+          "lambda:AddPermission",
+          "lambda:RemovePermission",
+          "lambda:TagResource",
+          "lambda:UntagResource",
+          "lambda:Get*",
+          "lambda:List*",
+        ]
+        Resource = local.prod_function_arn
+      },
+      {
+        # A role may only be created with the project's permission boundary.
+        Sid      = "CreateProdRoleWithBoundary"
+        Effect   = "Allow"
+        Action   = "iam:CreateRole"
+        Resource = local.prod_role_arn
+        Condition = {
+          StringEquals = { "iam:PermissionsBoundary" = aws_iam_policy.boundary.arn }
+        }
+      },
+      {
+        Sid    = "ManageProdRole"
+        Effect = "Allow"
+        Action = [
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:UpdateRoleDescription",
+          "iam:UpdateAssumeRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole",
+          "iam:TagRole",
+          "iam:UntagRole",
+        ]
+        Resource = local.prod_role_arn
+      },
+      {
+        # Only to the Lambda service, so the role cannot be handed to anything else.
+        Sid      = "PassProdRoleToLambda"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = local.prod_role_arn
+        Condition = {
+          StringEquals = { "iam:PassedToService" = "lambda.amazonaws.com" }
+        }
       },
     ]
   })

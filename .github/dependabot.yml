@@ -68,6 +68,7 @@ updates:
     directories:
       - /infra/bootstrap
       - /infra/github
+      - /infra/prod
     schedule:
       interval: weekly
       day: monday

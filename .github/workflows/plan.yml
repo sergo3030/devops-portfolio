@@ -1,6 +1,6 @@
-name: plan
+﻿name: plan
 
-# `tofu plan` of the bootstrap root on pull requests, through the read-only
+# `tofu plan` of the bootstrap and prod roots on pull requests, through the read-only
 # portfolio-plan role. No stored credentials: the job trades its short-lived GitHub
 # OIDC token for AWS credentials. Only pull requests from this repository run it.
 # Fork pull requests get no credentials (see the `if` below and docs/decisions.md).
@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - "infra/bootstrap/**"
+      - "infra/prod/**"
       - ".github/workflows/plan.yml"
 
 permissions:
@@ -20,11 +21,15 @@ concurrency:
 
 jobs:
   plan:
-    name: plan (bootstrap)
+    name: plan (${{ matrix.root }})
     # Explicit guard, on top of GitHub withholding secrets from fork workflows.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        root: [bootstrap, prod]
     permissions:
       contents: read # default, stated for clarity
       id-token: write # trade the OIDC token for AWS credentials, nothing else
@@ -54,18 +59,32 @@ jobs:
           aws-region: us-east-1
 
       - name: tofu init
-        working-directory: infra/bootstrap
+        working-directory: infra/${{ matrix.root }}
         run: tofu init -input=false
 
       - name: tofu plan
-        working-directory: infra/bootstrap
-        run: tofu plan -input=false -no-color -lock-timeout=60s | tee "${RUNNER_TEMP}/plan.txt"
+        working-directory: infra/${{ matrix.root }}
+        env:
+          MATRIX_ROOT: ${{ matrix.root }}
+        run: |
+          # Without pipefail a failed plan would be hidden by `tee` and the job would pass.
+          set -o pipefail
+          # The prod root is deployed by image digest, which is not in any file. Plan with the
+          # digest that is deployed now, so the plan shows only what this pull request changes
+          # (with none, a deployed function would look like it is about to be destroyed).
+          if [ "${MATRIX_ROOT}" = prod ]; then
+            digest="$(tofu output -raw deployed_image_digest 2>/dev/null || true)"
+            if [ -n "${digest}" ]; then export TF_VAR_image_digest="${digest}"; fi
+          fi
+          tofu plan -input=false -no-color -lock-timeout=60s | tee "${RUNNER_TEMP}/plan.txt"
 
       - name: Plan summary
         if: always()
+        env:
+          MATRIX_ROOT: ${{ matrix.root }}
         run: |
           # Only the one-line result: the full plan stays in the (masked) job log.
           {
-            echo "### tofu plan (bootstrap)"
+            echo "### tofu plan (${MATRIX_ROOT})"
             grep -E '^(Plan:|No changes)' "${RUNNER_TEMP}/plan.txt" || echo "No plan result (see the job log)."
           } >> "${GITHUB_STEP_SUMMARY}"
