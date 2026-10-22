@@ -47,8 +47,10 @@ jobs:
       - name: dependabot.yml schema
         run: uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
-      - name: Image push script tests (fake aws and docker)
-        run: bash scripts/test-ecr-image.sh
+      - name: Script tests (fake aws, docker and trivy)
+        run: |
+          bash scripts/test-ecr-image.sh
+          bash scripts/test-retry-and-trivy.sh
 
   python:
     name: python (ruff, pytest)
@@ -223,12 +225,19 @@ jobs:
       - name: Build the image and start the stack
         env:
           GIT_SHA: ${{ github.sha }}
-        run: docker compose up --build --detach --wait --wait-timeout 90
+        # public.ecr.aws and ghcr.io sometimes answer 429 to the shared runners, so the pull is retried.
+        run: bash scripts/retry.sh 3 30 -- docker compose up --build --detach --wait --wait-timeout 90
 
       - name: Smoke test
         env:
           GIT_SHA: ${{ github.sha }}
         run: bash scripts/smoke-test-container.sh
+
+      - name: Install Trivy (checksum pinned)
+        run: bash scripts/install-trivy.sh
+
+      - name: Scan the image (fixable HIGH and CRITICAL vulnerabilities, secrets)
+        run: bash scripts/scan-image.sh portfolio-api:ci
 
       - name: Container logs on failure
         if: failure()

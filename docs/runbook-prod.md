@@ -63,8 +63,26 @@ aws ecr describe-images --repository-name portfolio-api \
 ```
 
 `scripts/ecr-image.sh` holds the ECR steps and `scripts/test-ecr-image.sh` tests them with fake
-`aws` and `docker` commands (`just test-scripts`, and in CI). Trivy, the approval gate and the
-deploy itself arrive with task 15.
+`aws` and `docker` commands (`just test-scripts`, and in CI). The approval gate and the deploy
+itself are the rest of task 15.
+
+### The scan (D39)
+
+Before the push, the smoke-tested image is scanned by Trivy (`scripts/scan-image.sh`). A
+HIGH or CRITICAL vulnerability that has a fix, or a secret, fails the job and nothing reaches ECR.
+The same scan runs in the CI `image` job on every pull request. What to do when it fails:
+
+1. Read the table in the job log. Usually the fix is a newer base-image digest (Dependabot opens
+   those) or a bumped dependency.
+2. Only if the finding cannot be fixed or does not apply, add an entry to `.trivyignore.yaml`
+   with an `id`, a `statement` saying why, and an `expired_at` at most 90 days away.
+
+Trivy is installed by `scripts/install-trivy.sh`, pinned by version and archive checksum. To
+update it, change `version` and `sha256` together and check the new archive against the release's
+`trivy_<version>_checksums.txt` (`gh release download v<version> --repo aquasecurity/trivy
+--pattern '*checksums.txt' --output -`). Dependabot does not see this pin. The image build and the
+vulnerability-database download are retried (`scripts/retry.sh`) because the registries answer
+`429` to the shared runners now and then; if all attempts fail, re-run the failed jobs.
 
 ## Public URL: two statements
 
