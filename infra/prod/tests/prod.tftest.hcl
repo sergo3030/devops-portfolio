@@ -85,22 +85,45 @@ run "function_runs_the_image_by_digest" {
   }
 
   assert {
-    condition     = aws_lambda_function.api[0].reserved_concurrent_executions == null
-    error_message = "reserved concurrency is optional and off by default (the account quota is 10)"
+    condition     = aws_lambda_function.api[0].reserved_concurrent_executions == 2
+    error_message = "the function must be capped at 2 parallel executions by default"
   }
 }
 
-run "reserved_concurrency_can_be_set" {
+run "reserved_concurrency_can_be_removed_for_a_default_quota_account" {
   command = plan
 
   variables {
-    reserved_concurrency = 2
+    reserved_concurrency = null
   }
 
   assert {
-    condition     = aws_lambda_function.api[0].reserved_concurrent_executions == 2
-    error_message = "reserved_concurrency must reach the function"
+    condition     = aws_lambda_function.api[0].reserved_concurrent_executions == null
+    error_message = "null must leave the function unreserved (an account with quota 10 cannot reserve any)"
   }
+}
+
+run "reserved_concurrency_zero_is_the_kill_switch" {
+  command = plan
+
+  variables {
+    reserved_concurrency = 0
+  }
+
+  assert {
+    condition     = aws_lambda_function.api[0].reserved_concurrent_executions == 0
+    error_message = "0 must reach the function: it blocks every request"
+  }
+}
+
+run "reserved_concurrency_above_ten_is_rejected" {
+  command = plan
+
+  variables {
+    reserved_concurrency = 50
+  }
+
+  expect_failures = [var.reserved_concurrency]
 }
 
 run "function_url_is_public_and_has_both_permissions" {
