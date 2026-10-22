@@ -201,6 +201,53 @@ run "apply_role_can_only_touch_prod_state" {
   }
 }
 
+# ---------------------------------------------------------------- public ECR login (D40)
+
+run "plan_and_push_roles_can_log_in_to_public_ecr" {
+  assert {
+    condition = alltrue([
+      for policy in [aws_iam_role_policy.plan.policy, aws_iam_role_policy.ecr_push.policy] :
+      contains(flatten([for s in jsondecode(policy).Statement : s.Action]), "ecr-public:GetAuthorizationToken")
+      && contains(flatten([for s in jsondecode(policy).Statement : s.Action]), "sts:GetServiceBearerToken")
+    ])
+    error_message = "the plan and ecr-push roles need both actions to log in to public ECR"
+  }
+
+  assert {
+    condition = alltrue([
+      for policy in [aws_iam_role_policy.plan.policy, aws_iam_role_policy.ecr_push.policy] :
+      [
+        for s in jsondecode(policy).Statement :
+        s.Condition.StringEquals["sts:AWSServiceName"] if s.Action == "sts:GetServiceBearerToken"
+      ] == ["ecr-public.amazonaws.com"]
+    ])
+    error_message = "sts:GetServiceBearerToken must be limited to the ECR Public service"
+  }
+}
+
+run "no_role_can_push_to_public_ecr_or_use_other_public_ecr_actions" {
+  assert {
+    condition = alltrue([
+      for policy in [aws_iam_role_policy.plan.policy, aws_iam_role_policy.ecr_push.policy, aws_iam_role_policy.apply.policy, aws_iam_role_policy.apply_prod_resources.policy] :
+      alltrue([
+        for a in flatten([for s in jsondecode(policy).Statement : s.Action]) :
+        !startswith(a, "ecr-public:") || a == "ecr-public:GetAuthorizationToken"
+      ])
+    ])
+    error_message = "the only ecr-public action any role may have is GetAuthorizationToken (no pushing to a public registry)"
+  }
+
+  assert {
+    condition     = contains(jsondecode(aws_iam_policy.boundary.policy).Statement[0].Action, "ecr-public:GetAuthorizationToken")
+    error_message = "the boundary must allow the login token, or the roles' permission would be ignored"
+  }
+
+  assert {
+    condition     = !contains(jsondecode(aws_iam_policy.boundary.policy).Statement[0].Action, "ecr-public:*")
+    error_message = "the boundary must not allow all of ECR Public"
+  }
+}
+
 run "apply_role_resource_permissions_name_only_project_resources" {
   assert {
     condition = alltrue([

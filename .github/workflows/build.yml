@@ -13,6 +13,7 @@ on:
       - "content/**"
       - "scripts/check_content.py"
       - "scripts/ecr-image.sh"
+      - "scripts/ecr-public-login.sh"
       - "scripts/smoke-test-container.sh"
       - "docker-compose.yml"
       - ".github/workflows/build.yml"
@@ -60,6 +61,12 @@ jobs:
       - name: Is there already an image for this commit?
         id: existing
         run: bash scripts/ecr-image.sh lookup
+
+      # The adapter image comes from public.ecr.aws, which rate limits anonymous pulls. This job
+      # already has AWS credentials, so it logs in (D40). If the login fails, the pull is anonymous.
+      - name: Log in to public ECR (authenticated pulls)
+        if: steps.existing.outputs.found != 'true'
+        run: bash scripts/ecr-public-login.sh
 
       - name: Build the image and start the stack
         if: steps.existing.outputs.found != 'true'

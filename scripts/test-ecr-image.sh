@@ -34,14 +34,27 @@ case "$1 $2" in
     esac
     ;;
   "ecr get-login-password") echo "fake-password" ;;
+  "ecr-public get-login-password")
+    case "${FAKE_AWS_MODE}" in
+      public_denied)
+        echo "An error occurred (AccessDeniedException) when calling the GetAuthorizationToken operation: not authorized" >&2
+        exit 254
+        ;;
+      public_empty) ;;
+      *) echo "public-secret-token" ;;
+    esac
+    ;;
 esac
 EOF
 
-# Fake docker: records the call, and reads stdin for `login`.
+# Fake docker: records the call, keeps what `login` receives on stdin, and fails on demand.
 cat >"${work}/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 echo "docker $*" >>"${FAKE_LOG}"
-if [ "$1" = login ]; then cat >/dev/null; fi
+if [ "$1" = login ]; then
+  cat >"${FAKE_STDIN:-/dev/null}"
+  [ "${FAKE_DOCKER_LOGIN_EXIT:-0}" -eq 0 ] || { echo "Error response from daemon: login attempt failed" >&2; exit 1; }
+fi
 EOF
 chmod +x "${work}/bin/aws" "${work}/bin/docker"
 
@@ -104,6 +117,41 @@ if ! grep -q ':latest' "${work}/log"; then pass "no moving tag (latest) is ever 
 
 run found push
 if [ "${status}" -ne 0 ]; then pass "push without a registry is refused"; else fail "push needs ECR_REGISTRY"; fi
+
+# ---------------------------------------------------------------- ecr-public-login.sh
+
+login() { # <aws mode> [docker login exit code]
+  : >"${work}/log"
+  : >"${work}/stdin"
+  status=0
+  env PATH="${work}/bin:${PATH}" FAKE_LOG="${work}/log" FAKE_AWS_MODE="$1" FAKE_STDIN="${work}/stdin" \
+    FAKE_DOCKER_LOGIN_EXIT="${2:-0}" bash "$(pwd)/scripts/ecr-public-login.sh" >"${work}/out" 2>&1 || status=$?
+}
+
+login public_ok
+if [ "${status}" -eq 0 ] \
+  && grep -qx 'aws ecr-public get-login-password --region us-east-1' "${work}/log" \
+  && grep -qx 'docker login --username AWS --password-stdin public.ecr.aws' "${work}/log" \
+  && [ "$(cat "${work}/stdin")" = "public-secret-token" ]; then
+  pass "login asks ECR Public (us-east-1) for a token and gives it to docker on stdin"
+else fail "login should use aws ecr-public get-login-password and docker login --password-stdin"; fi
+
+if ! grep -q 'public-secret-token' "${work}/out"; then pass "the token is never printed"; else fail "the token must not appear in the output"; fi
+
+login public_denied
+if [ "${status}" -eq 0 ] && grep -q '^::warning::' "${work}/out" && ! grep -q 'docker login' "${work}/log"; then
+  pass "a token that cannot be fetched only warns, and docker is not asked to log in"
+else fail "a denied token request must warn, exit 0 and skip docker login (status=${status})"; fi
+
+login public_empty
+if [ "${status}" -eq 0 ] && grep -q '^::warning::' "${work}/out" && ! grep -q 'docker login' "${work}/log"; then
+  pass "an empty token is treated as no login"
+else fail "an empty token must not be passed to docker"; fi
+
+login public_ok 1
+if [ "${status}" -eq 0 ] && grep -q '^::warning::docker login' "${work}/out" && ! grep -q 'public-secret-token' "${work}/out"; then
+  pass "a docker login failure only warns, without printing the token"
+else fail "a failing docker login must warn and exit 0"; fi
 
 if [ "${failures}" -ne 0 ]; then
   echo "${failures} test(s) failed" >&2

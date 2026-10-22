@@ -4,6 +4,28 @@
 locals {
   oidc_aud_key = "${local.oidc_url}:aud"
   oidc_sub_key = "${local.oidc_url}:sub"
+
+  # What a job needs to log in to public ECR (`aws ecr-public get-login-password`), so that image
+  # pulls from public.ecr.aws count against this AWS account instead of the shared anonymous limit
+  # of the GitHub runners (decisions.md D40). The token only allows pulling public images:
+  # pushing to a public registry needs other ecr-public actions, which no role has.
+  public_ecr_login_statements = [
+    {
+      Sid      = "LoginToPublicEcr"
+      Effect   = "Allow"
+      Action   = "ecr-public:GetAuthorizationToken"
+      Resource = "*"
+    },
+    {
+      Sid      = "GetBearerTokenForPublicEcr"
+      Effect   = "Allow"
+      Action   = "sts:GetServiceBearerToken"
+      Resource = "*"
+      Condition = {
+        StringEquals = { "sts:AWSServiceName" = "ecr-public.amazonaws.com" }
+      }
+    },
+  ]
 }
 
 # ---------------------------------------------------------------- plan
@@ -37,7 +59,7 @@ resource "aws_iam_role_policy" "plan" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Sid      = "ReadStateBucketSettings"
         Effect   = "Allow"
@@ -84,7 +106,7 @@ resource "aws_iam_role_policy" "plan" {
         ]
         Resource = "*"
       },
-    ]
+    ], local.public_ecr_login_statements)
   })
 }
 
@@ -118,7 +140,7 @@ resource "aws_iam_role_policy" "ecr_push" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Sid      = "LoginToEcr"
         Effect   = "Allow"
@@ -140,7 +162,7 @@ resource "aws_iam_role_policy" "ecr_push" {
         ]
         Resource = local.ecr_repository_arn
       },
-    ]
+    ], local.public_ecr_login_statements)
   })
 }
 
