@@ -213,15 +213,27 @@ run "plan_and_push_roles_can_log_in_to_public_ecr" {
     error_message = "the plan and ecr-push roles need both actions to log in to public ECR"
   }
 
+  # sts:GetServiceBearerToken cannot carry an sts:AWSServiceName condition (AWS refused the login
+  # with one). It is safe because no role has any other service's token permission.
   assert {
     condition = alltrue([
       for policy in [aws_iam_role_policy.plan.policy, aws_iam_role_policy.ecr_push.policy] :
       [
-        for s in jsondecode(policy).Statement :
-        s.Condition.StringEquals["sts:AWSServiceName"] if s.Action == "sts:GetServiceBearerToken"
-      ] == ["ecr-public.amazonaws.com"]
+        for a in flatten([for s in jsondecode(policy).Statement : s.Action]) : a if startswith(a, "sts:")
+      ] == ["sts:GetServiceBearerToken"]
     ])
-    error_message = "sts:GetServiceBearerToken must be limited to the ECR Public service"
+    error_message = "the only sts action of the plan and ecr-push roles is GetServiceBearerToken"
+  }
+
+  assert {
+    condition = alltrue([
+      for policy in [aws_iam_role_policy.plan.policy, aws_iam_role_policy.ecr_push.policy, aws_iam_role_policy.apply.policy, aws_iam_role_policy.apply_prod_resources.policy] :
+      alltrue([
+        for a in flatten([for s in jsondecode(policy).Statement : s.Action]) :
+        !startswith(a, "codeartifact:") && !startswith(a, "ssm:") && !startswith(a, "sso:")
+      ])
+    ])
+    error_message = "no role may have another service's token permission that a bearer token could be used with"
   }
 }
 

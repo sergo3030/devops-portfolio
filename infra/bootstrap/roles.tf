@@ -9,6 +9,13 @@ locals {
   # pulls from public.ecr.aws count against this AWS account instead of the shared anonymous limit
   # of the GitHub runners (decisions.md D40). The token only allows pulling public images:
   # pushing to a public registry needs other ecr-public actions, which no role has.
+  #
+  # sts:GetServiceBearerToken has no condition on purpose. The first version limited it with
+  # sts:AWSServiceName = ecr-public.amazonaws.com, and AWS refused the login ("no identity-based
+  # policy allows" it): ECR Public makes that STS call itself, and the condition did not match.
+  # The AWS documentation's policy for this login has no condition either. The action alone gets
+  # nothing: a bearer token is issued only together with the service's own GetAuthorizationToken
+  # permission, and ECR Public's is the only one any role has (a test checks that).
   public_ecr_login_statements = [
     {
       Sid      = "LoginToPublicEcr"
@@ -21,9 +28,6 @@ locals {
       Effect   = "Allow"
       Action   = "sts:GetServiceBearerToken"
       Resource = "*"
-      Condition = {
-        StringEquals = { "sts:AWSServiceName" = "ecr-public.amazonaws.com" }
-      }
     },
   ]
 }
