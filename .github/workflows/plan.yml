@@ -73,8 +73,10 @@ jobs:
           # digest that is deployed now, so the plan shows only what this pull request changes
           # (with none, a deployed function would look like it is about to be destroyed).
           if [ "${MATRIX_ROOT}" = prod ]; then
-            digest="$(tofu output -raw deployed_image_digest 2>/dev/null || true)"
-            if [ -n "${digest}" ]; then export TF_VAR_image_digest="${digest}"; fi
+            # With no state (or no function yet) tofu prints a warning on stdout instead of a
+            # value, so only a real digest is accepted.
+            digest="$(tofu output -no-color -raw deployed_image_digest 2>/dev/null || true)"
+            if [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then export TF_VAR_image_digest="${digest}"; fi
           fi
           tofu plan -input=false -no-color -lock-timeout=60s | tee "${RUNNER_TEMP}/plan.txt"
 
