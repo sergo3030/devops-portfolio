@@ -20,6 +20,10 @@ lint-workflows:
     uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
     ! grep -rnE 'vars\.AWS_ACCOUNT_ID|arn:aws:[a-z0-9-]*::[0-9]{12}' --exclude=ci.yml .github/workflows
 
+# Test the image push script against fake aws and docker commands (same as CI)
+test-scripts:
+    bash scripts/test-ecr-image.sh
+
 # Scan IaC, workflows and Dockerfiles (same check as CI)
 iac-scan:
     PYTHONUTF8=1 uvx --from checkov==3.3.26 checkov --config-file .checkov.yaml
