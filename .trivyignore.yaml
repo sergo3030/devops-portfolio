@@ -1,0 +1,13 @@
+# Vulnerabilities the image scan (scripts/scan-image.sh) is allowed to ignore. Empty on purpose.
+#
+# The rule: an entry needs
+#   - id:          the CVE or advisory ID
+#   - statement:   why it is acceptable (not reachable, no fix yet and the risk is understood)
+#   - expired_at:  a date at most 90 days away, so the exception comes back for review
+# Prefer fixing the cause (a newer base image digest, a bumped dependency) to adding an entry.
+#
+# Example:
+#   - id: CVE-2099-0001
+#     statement: Only reachable through a feature the API does not use.
+#     expired_at: 2027-01-31
+vulnerabilities: []

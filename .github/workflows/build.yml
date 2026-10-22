@@ -1,9 +1,10 @@
 name: build
 
 # Builds the API image after a merge to main and pushes it to ECR through the ecr-push role.
-# The image is smoke-tested first, and the one that passed is the one that is pushed. The only
-# tag is sha-<commit> (the repository's tags are immutable), and the job reports the digest that
-# the deploy uses. Scanning with Trivy, the approval gate and the deploy itself are task 15.
+# The image is smoke-tested and scanned with Trivy first, and the one that passed is the one that
+# is pushed: an image with a fixable HIGH or CRITICAL vulnerability, or a secret, never reaches
+# ECR. The only tag is sha-<commit> (the repository's tags are immutable), and the job reports
+# the digest that the deploy uses. The approval gate and the deploy itself are the deploy workflow.
 
 on:
   push:
@@ -15,6 +16,10 @@ on:
       - "scripts/ecr-image.sh"
       - "scripts/ecr-public-login.sh"
       - "scripts/smoke-test-container.sh"
+      - "scripts/retry.sh"
+      - "scripts/install-trivy.sh"
+      - "scripts/scan-image.sh"
+      - ".trivyignore.yaml"
       - "docker-compose.yml"
       - ".github/workflows/build.yml"
   workflow_dispatch:
@@ -70,13 +75,22 @@ jobs:
 
       - name: Build the image and start the stack
         if: steps.existing.outputs.found != 'true'
-        run: docker compose up --build --detach --wait --wait-timeout 90
+        # public.ecr.aws and ghcr.io sometimes answer 429 to the shared runners, so the pull is retried.
+        run: bash scripts/retry.sh 3 30 -- docker compose up --build --detach --wait --wait-timeout 90
 
       - name: Smoke test
         if: steps.existing.outputs.found != 'true'
         run: bash scripts/smoke-test-container.sh
 
-      - name: Push the image that passed the smoke test
+      - name: Install Trivy (checksum pinned)
+        if: steps.existing.outputs.found != 'true'
+        run: bash scripts/install-trivy.sh
+
+      - name: Scan the image (fixable HIGH and CRITICAL vulnerabilities, secrets)
+        if: steps.existing.outputs.found != 'true'
+        run: bash scripts/scan-image.sh portfolio-api:ci
+
+      - name: Push the image that passed the smoke test and the scan
         if: steps.existing.outputs.found != 'true'
         env:
           # The registry host contains the account ID, which GitHub masks because it is a secret.
