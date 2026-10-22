@@ -72,7 +72,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 # A non-root user. Files stay root-owned and world-readable, because Lambda runs the code as
 # its own default user, which only needs to read them.
-RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin app
+#
+# pip is removed in the same step. It only installs packages, and every dependency is copied in
+# from the builder stage, so nothing at run time needs it. It also bundles copies of certifi,
+# urllib3, msgpack and setuptools, which the image scan reports whenever one of them has an
+# advisory. Removing it removes those findings, a tool an attacker could use, and some size.
+RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin app \
+    && python -m pip uninstall --yes pip
 
 COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
