@@ -9,7 +9,7 @@ the teardown procedure are described in [docs/aws-lambda-baseline-plan.md](docs/
 
 More: [decisions and plan deviations](docs/decisions.md), [manual steps](docs/manual-steps.md),
 [inventory of project resources](docs/inventory.md), [how content is checked](docs/content.md), [the API](docs/api.md), [the site](docs/web.md),
-runbooks for the [bootstrap root](docs/runbook-bootstrap.md) and the [github root](docs/runbook-github.md).
+runbooks for the [bootstrap root](docs/runbook-bootstrap.md), the [github root](docs/runbook-github.md) and the [prod root](docs/runbook-prod.md).
 
 ## Quick start (Windows, Git Bash)
 

@@ -197,7 +197,69 @@ run "apply_role_can_only_touch_prod_state" {
       for s in jsondecode(aws_iam_role_policy.apply.policy).Statement :
       alltrue([for a in flatten([s.Action]) : startswith(a, "s3:")])
     ])
-    error_message = "the apply role must have no permissions outside S3 state access until task 14"
+    error_message = "the state policy of the apply role must hold S3 state access only"
+  }
+}
+
+run "apply_role_resource_permissions_name_only_project_resources" {
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      s.Sid == "FindLogGroups" || alltrue([for r in flatten([s.Resource]) : strcontains(r, "portfolio-")])
+    ])
+    error_message = "every apply statement must name project resources (the prefix), except log group discovery"
+  }
+
+  assert {
+    condition = [
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      s.Sid if contains(flatten([s.Resource]), "*")
+    ] == ["FindLogGroups"]
+    error_message = "only logs:DescribeLogGroups (no resource-level support) may use Resource *"
+  }
+
+  assert {
+    condition     = local.prod_role_arn == "arn:aws:iam::123456789012:role/portfolio-prod-*"
+    error_message = "the apply role may manage roles named portfolio-prod-* only, which excludes plan, apply and ecr-push"
+  }
+}
+
+run "apply_role_can_only_create_roles_with_the_boundary" {
+  assert {
+    condition = [
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      s.Condition.StringEquals["iam:PermissionsBoundary"] if s.Sid == "CreateProdRoleWithBoundary"
+    ] == ["arn:aws:iam::123456789012:policy/portfolio-boundary"]
+    error_message = "iam:CreateRole must require the project's permission boundary"
+  }
+
+  assert {
+    condition = [
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      s.Condition.StringEquals["iam:PassedToService"] if s.Sid == "PassProdRoleToLambda"
+    ] == ["lambda.amazonaws.com"]
+    error_message = "the prod role may only be passed to the Lambda service"
+  }
+}
+
+run "apply_role_cannot_escalate" {
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      alltrue([
+        for a in flatten([s.Action]) :
+        !contains(["*", "iam:*", "iam:AttachRolePolicy", "iam:PutRolePermissionsBoundary", "iam:DeleteRolePermissionsBoundary", "iam:CreatePolicy", "iam:CreatePolicyVersion", "iam:CreateUser", "iam:CreateAccessKey"], a)
+      ])
+    ])
+    error_message = "the apply role must not be able to attach managed policies, change boundaries or create users or keys"
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.apply_prod_resources.policy).Statement :
+      alltrue([for a in flatten([s.Action]) : !startswith(a, "s3:") && !startswith(a, "dynamodb:") && !startswith(a, "budgets:")])
+    ])
+    error_message = "the resource policy must not reach S3, DynamoDB or Budgets"
   }
 }
 
