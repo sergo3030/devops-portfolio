@@ -9,6 +9,9 @@ locals {
   boundary_allowed_services = [
     "s3:*",
     "ecr:*",
+    # Only the login token for pulling public images with the project's AWS identity (see
+    # decisions.md D40). Nothing else in ECR Public, so a role can never push to a public registry.
+    "ecr-public:GetAuthorizationToken",
     "lambda:*",
     "logs:*",
     "dynamodb:*",

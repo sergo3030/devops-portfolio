@@ -65,6 +65,8 @@ Both resources are free and are recreated in seconds.
 | Workflow | Role | When | Notes |
 |---|---|---|---|
 | `plan.yml` | `portfolio-plan` | Pull requests of this repository that change `infra/bootstrap/**` or `infra/prod/**` (one job per root) | `tofu plan` with a placeholder email. The full plan is in the job log, where the account ID is masked. The job summary shows only the one-line result. Fork pull requests are skipped. |
+| `ci.yml`, job `image` | `portfolio-plan` | Pull requests of this repository (not forks) | Only to log in to public ECR, so the adapter image is pulled with the AWS account's limits and not the shared anonymous ones (D40). The step may fail without failing the job. |
+| `build.yml` | `portfolio-ecr-push` | Push to `main` and manual runs | Looks up the commit's image, logs in to public ECR (same reason), pushes the image, reads its digest back. |
 | `deploy.yml` | `portfolio-apply` | Manual run, after the owner approves the `prod` environment | Today only proves the gate (prints the assumed role). Real deployment is task 15. |
 
 The workflows read the account ID from the Actions secret `AWS_ACCOUNT_ID` (masked in

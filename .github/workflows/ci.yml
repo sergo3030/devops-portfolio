@@ -173,6 +173,9 @@ jobs:
     name: image (hadolint, build, smoke)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read # default, stated for clarity
+      id-token: write # trade the OIDC token for AWS credentials, to log in to public ECR (D40)
     env:
       # BuildKit adds provenance attestations by default in some setups. Lambda rejects an
       # image index, so switch them off for every build in this job.
@@ -183,6 +186,25 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # The adapter image comes from public.ecr.aws, which rate limits anonymous pulls per address
+      # and answers 429 to the shared runners. A pull request of this repository logs in with the
+      # read-only plan role instead (no stored credentials). If any of this fails, the pull is
+      # anonymous as before, so the build never depends on it.
+      - name: Assume the plan role (for authenticated pulls from public ECR)
+        id: aws
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          # A secret on purpose: GitHub masks it everywhere in the public logs.
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-plan
+          role-session-name: image-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Log in to public ECR
+        if: steps.aws.outcome == 'success'
+        run: bash scripts/ecr-public-login.sh
 
       - name: Install hadolint 2.15.1 (checksum pinned)
         env:
