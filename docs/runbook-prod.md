@@ -17,7 +17,7 @@ State: `s3://portfolio-tfstate-x7k2m9qd4t/prod/terraform.tfstate`. Everything is
 | Variable | Default | Meaning |
 |---|---|---|
 | `image_digest` | `null` | `sha256:...` of the image to run. `null`: no function and no URL, only the repository and its pieces |
-| `reserved_concurrency` | `null` | Parallel-execution cap. `null` = none, because with the default account quota of 10 AWS allows no reservation. Set 1 or 2 once the quota is raised. `0` blocks every request (kill switch) |
+| `reserved_concurrency` | `2` | Parallel-execution cap. AWS keeps 10 unreserved, so this needs an account quota above 12 (it is 40 here since 2026-10-22). On an account with the default quota of 10 set `null`, which means no cap. `0` blocks every request (kill switch) |
 | `images_to_keep` | `3` | At least 3, so pushing two newer images before a deploy cannot expire the running one |
 | `force_delete_images` | `false` | Teardown only (see below) |
 
@@ -71,25 +71,61 @@ deploy itself arrive with task 15.
 Since October 2025 a Function URL with no authentication needs both `lambda:InvokeFunctionUrl`
 and `lambda:InvokeFunction` in the function's resource policy
 ([AWS docs](https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)). They are
-`aws_lambda_permission.url` and `.invoke`. If the URL answers `403 Forbidden`, check that both
-exist (`aws lambda get-policy --function-name portfolio-api`).
+`aws_lambda_permission.url` and `.invoke`. AWS also adds its own equivalent statements
+(`FunctionURLAllowPublicAccess`, `FunctionURLAllowInvokeAction`) when the URL is created, so
+the policy shows four statements. Ours duplicate them on purpose: the code states the
+requirement. If the URL answers `403 Forbidden`, check that both actions exist
+(`aws lambda get-policy --function-name portfolio-api`). A deleted URL also answers 403.
 
 ## Pausing or removing production (Level 1)
 
 Delete the function but keep the repository: `tofu apply` with `image_digest` unset removes the
-function, the URL and both statements. To remove everything:
+function, the URL and the public statements. To remove everything:
 
 ```bash
-tofu -chdir=infra/prod apply -var force_delete_images=true   # lets the repository be deleted with its images
-tofu -chdir=infra/prod destroy -var force_delete_images=true
+digest="$(tofu -chdir=infra/prod output -raw deployed_image_digest)"
+# 1. Turn force_delete on. Pass the deployed digest, or this plan would also remove the function.
+tofu -chdir=infra/prod plan -var "image_digest=${digest}" -var force_delete_images=true -out=tfplan
+tofu -chdir=infra/prod apply tfplan                     # 1 change: force_delete false -> true
+# 2. Plan the destroy AFTER step 1 (a plan saved before it would be stale), read it, then apply.
+tofu -chdir=infra/prod plan -destroy -var "image_digest=${digest}" -var force_delete_images=true -out=tfplan-destroy
+tofu -chdir=infra/prod apply tfplan-destroy             # 9 resources, including the images
+rm infra/prod/tfplan infra/prod/tfplan-destroy
 ```
 
-Read `plan -destroy` first. The repository holds images, so the first command has to be applied
-before the second can delete it. `just teardown-api` wraps this in task 18a.
+The repository holds images, so step 1 has to be applied before the destroy can delete it.
+`just teardown-api` wraps this in task 18a.
+
+## Destroy and recreate, rehearsed (2026-10-22)
+
+Run once with the sequence above and then the steps below. Nothing was left after the destroy
+(prod state empty, no tagged resources, no repository, function, log group or `portfolio-prod-*`
+role), and the old URL answered 403.
+
+| Step | Time |
+|---|---|
+| Destroy, 9 resources | 13 s |
+| Phase 1 apply (repository, lifecycle policy, log group, role and policy) | 6 s |
+| `build` workflow, started by hand (Actions, Run workflow, `main`) | 41 s |
+| Phase 2 apply with the new digest (function, URL, two statements) | 17 s |
+
+To recreate: apply with no `image_digest` (phase 1), run the `build` workflow, read the new
+digest (see "Building the image"), then
+`tofu plan -var image_digest=sha256:... -out=tfplan` and apply it. The new URL is different from
+the old one. A rebuild of the same commit has a different digest, so always take the digest from
+ECR. If the build fails on a `429` from `public.ecr.aws`, re-run the failed jobs (D38).
+
+## Cold start
+
+The first request after idle takes 3.9 to 4.6 s from the owner's laptop (about 2.8 s of that is
+container start and Python import, shown as `Init Duration` in the log), and 0.5 s once warm. The
+site waits 5 s for live data, so before the URL goes into the site (after task 16) either raise
+that deadline or shorten the start (a larger memory size gives more CPU; the function uses about
+80 MB of 512). The adapter also warns that `HOST` is deprecated in favour of `AWS_LWA_HOST`.
 
 ## Cost and abuse
 
 Normal use costs a few cents a month (ECR storage of 3 images). The URL is public, so a
 sustained flood could cost real money before the $1 Budget email reaches anyone: a concurrency
-cap only bounds it partly. Until task 16 (CORS, headers) and a raised concurrency quota, the URL
-stays out of the site, and `reserved_concurrency = 0` is the emergency brake.
+cap only bounds it partly. Until task 16 (CORS, headers), the URL stays out of the site. The cap
+is 2 now; `reserved_concurrency = 0` is the emergency brake.

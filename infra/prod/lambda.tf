@@ -3,7 +3,7 @@
 
 resource "aws_lambda_function" "api" {
   #checkov:skip=CKV_AWS_50:X-Ray tracing is not used. The API is one function, and CloudWatch logs are enough.
-  #checkov:skip=CKV_AWS_115:Reserved concurrency is optional. An account with the default quota of 10 cannot reserve any. Set reserved_concurrency once the quota is raised (decisions.md).
+  #checkov:skip=CKV_AWS_115:Reserved concurrency is a variable (default 2). It can be set to null on an account whose quota is the default 10, which cannot reserve any (decisions.md).
   #checkov:skip=CKV_AWS_116:A dead letter queue is for asynchronous invocations. This function is only called synchronously through its URL.
   #checkov:skip=CKV_AWS_117:No VPC on purpose. The function needs no private resources, and a VPC would need a NAT gateway for internet access (a recurring cost).
   #checkov:skip=CKV_AWS_272:Code signing does not apply to container images. The image is pinned by digest and scanned on push.
@@ -17,7 +17,7 @@ resource "aws_lambda_function" "api" {
   memory_size   = var.memory_size
   timeout       = var.timeout_seconds
 
-  # null leaves the function unreserved.
+  # Caps parallel executions (default 2). null leaves the function unreserved.
   reserved_concurrent_executions = var.reserved_concurrency
 
   logging_config {
@@ -37,7 +37,10 @@ resource "aws_lambda_function_url" "api" {
 }
 
 # Since October 2025 a public Function URL (auth NONE) needs BOTH statements in the
-# function's resource policy. Without them every request is answered with 403.
+# function's resource policy. Without them every request is answered with 403. AWS adds
+# equivalent statements itself (FunctionURLAllowPublicAccess and FunctionURLAllowInvokeAction)
+# when the URL is created, as the first real deploy showed. These two duplicate them on purpose:
+# the code states the requirement, and keeps it if AWS stops adding them.
 resource "aws_lambda_permission" "url" {
   #checkov:skip=CKV_AWS_301:Public by design, see the Function URL above. Limited to calls through the URL (function_url_auth_type NONE).
   count = local.deploy ? 1 : 0

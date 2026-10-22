@@ -66,9 +66,9 @@ variable "timeout_seconds" {
 }
 
 variable "reserved_concurrency" {
-  description = "Cap on parallel executions. null means no cap, because an account with the default quota of 10 cannot reserve any (AWS keeps 10 unreserved). Set 1 or 2 once the quota is raised. 0 blocks every request, which makes it a kill switch."
+  description = "Cap on parallel executions (default 2). Needs an account quota above 12, because AWS keeps 10 unreserved: the default quota of 10 allows no reservation (set null there), and the quota here has been 40 since 2026-10-22. 0 blocks every request, which makes it a kill switch."
   type        = number
-  default     = null
+  default     = 2
 
   validation {
     condition     = var.reserved_concurrency == null || (var.reserved_concurrency >= 0 && var.reserved_concurrency <= 10)
