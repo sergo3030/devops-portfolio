@@ -23,6 +23,9 @@ case "$1 $2" in
       docker_manifest) printf '%s\t%s\n' "${FAKE_DIGEST}" "application/vnd.docker.distribution.manifest.v2+json" ;;
       index) printf '%s\t%s\n' "${FAKE_DIGEST}" "application/vnd.oci.image.index.v1+json" ;;
       badsha) printf '%s\t%s\n' "sha256:short" "application/vnd.oci.image.manifest.v1+json" ;;
+      by_digest) printf 'release-candidate\tsha-0123456789abcdef0123456789abcdef01234567\n' ;;
+      by_digest_untagged) echo "None" ;;
+      by_digest_wrong_tags) printf 'latest\tsha-short\tv1.2.3\n' ;;
       missing)
         echo "An error occurred (ImageNotFoundException) when calling the DescribeImages operation: The image with imageId {imageTag:sha-x} does not exist" >&2
         exit 254
@@ -152,6 +155,39 @@ login public_ok 1
 if [ "${status}" -eq 0 ] && grep -q '^::warning::docker login' "${work}/out" && ! grep -q 'public-secret-token' "${work}/out"; then
   pass "a docker login failure only warns, without printing the token"
 else fail "a failing docker login must warn and exit 0"; fi
+
+# ---------------------------------------------------------------- image-commit.sh
+
+commit_of() { # <aws mode> <digest>
+  : >"${work}/log"
+  : >"${work}/out"
+  status=0
+  env PATH="${work}/bin:${PATH}" FAKE_LOG="${work}/log" FAKE_AWS_MODE="$1" ECR_REPOSITORY=portfolio-api \
+    AWS_REGION=us-east-1 GITHUB_OUTPUT="${work}/out" bash "$(pwd)/scripts/image-commit.sh" "$2" 2>"${work}/err" || status=$?
+}
+
+commit_of by_digest "${digest}"
+if [ "${status}" -eq 0 ] && grep -qx 'commit=0123456789abcdef0123456789abcdef01234567' "${work}/out" \
+  && grep -q -- "--image-ids imageDigest=${digest}" "${work}/log"; then
+  pass "the commit is read from the sha-<commit> tag of the digest, ignoring other tags"
+else fail "image-commit should return the commit from the sha- tag"; fi
+
+commit_of by_digest_untagged "${digest}"
+if [ "${status}" -ne 0 ] && ! grep -q commit= "${work}/out" && grep -q 'no sha-<commit> tag' "${work}/err"; then
+  pass "an image without a commit tag is refused"
+else fail "an untagged image must be refused"; fi
+
+commit_of by_digest_wrong_tags "${digest}"
+if [ "${status}" -ne 0 ] && ! grep -q commit= "${work}/out"; then pass "tags that are not sha-<40 hex> are not taken for a commit"; else fail "a malformed sha- tag must not count"; fi
+
+commit_of missing "${digest}"
+if [ "${status}" -ne 0 ] && grep -q 'is not an image in portfolio-api' "${work}/err"; then pass "a digest that is not in the repository is refused"; else fail "an unknown digest must be refused"; fi
+
+commit_of denied "${digest}"
+if [ "${status}" -ne 0 ] && grep -q 'AccessDeniedException' "${work}/err"; then pass "an AWS error is shown, not hidden"; else fail "other errors must be reported"; fi
+
+commit_of by_digest "latest"
+if [ "${status}" -ne 0 ] && [ ! -s "${work}/log" ]; then pass "a malformed digest is rejected before any AWS call"; else fail "the digest must be validated first"; fi
 
 if [ "${failures}" -ne 0 ]; then
   echo "${failures} test(s) failed" >&2

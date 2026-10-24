@@ -1,12 +1,43 @@
 name: deploy
 
-# The deploy gate. Today it only proves the gate works: the job waits for the
-# owner's approval in the protected `prod` environment, and only then can it assume
-# the portfolio-apply role (whose trust policy accepts nothing else). The real
-# deployment (image digest, tofu apply of the prod root) is added in task 15.
+# Deploys an image to production by digest. It is called by build.yml after every push of an image,
+# and it can be run by hand with any digest in ECR, which is also the rollback.
+#
+# The job waits for the owner's approval in the protected `prod` environment (main branch only),
+# and only then can it assume the portfolio-apply role, whose trust policy accepts nothing else.
+# It plans, checks that the plan only swaps the Lambda image (scripts/check_deploy_plan.py), applies
+# that exact saved plan, and checks that the live API runs the commit of the image.
+#
+# A dry run (apply: false) does everything except the apply, to read the plan and prove the
+# permissions without changing production. The approval is still required.
 
 on:
+  workflow_call:
+    inputs:
+      digest:
+        description: "Image digest to deploy (sha256:...)"
+        required: true
+        type: string
+      apply:
+        description: "false makes it a dry run: plan and check, but do not apply"
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      AWS_ACCOUNT_ID:
+        description: "AWS account ID, used to build the role ARN (a secret so that GitHub masks it)"
+        required: true
   workflow_dispatch:
+    inputs:
+      digest:
+        description: "Image digest to deploy (sha256:...). Any image in ECR works, so this is also the rollback"
+        required: true
+        type: string
+      apply:
+        description: "Untick for a dry run: plan and check, but do not apply"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -16,15 +47,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  gate:
-    name: gate (prod)
+  deploy:
+    name: deploy (prod)
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     environment: prod # waits for the owner's approval, main branch only
     permissions:
       contents: read # default, stated for clarity
       id-token: write # trade the OIDC token for AWS credentials, nothing else
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: portfolio-api
+      TF_IN_AUTOMATION: "true"
+      DIGEST: ${{ inputs.digest }}
     steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.13.1"
+          tofu_wrapper: false
+
       - name: Assume the apply role
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
@@ -33,5 +80,60 @@ jobs:
           role-session-name: deploy-${{ github.run_id }}
           aws-region: us-east-1
 
-      - name: Who am I
-        run: aws sts get-caller-identity --query Arn --output text
+      - name: Find the commit this image was built from
+        id: image
+        run: bash scripts/image-commit.sh "${DIGEST}"
+
+      - name: tofu init
+        working-directory: infra/prod
+        run: tofu init -input=false
+
+      - name: What is deployed now
+        id: before
+        working-directory: infra/prod
+        run: |
+          # Only a real digest is taken: with no state tofu prints a warning instead of a value.
+          current="$(tofu output -no-color -raw deployed_image_digest 2>/dev/null || true)"
+          if ! [[ "${current}" =~ ^sha256:[0-9a-f]{64}$ ]]; then current="none"; fi
+          echo "digest=${current}" >> "${GITHUB_OUTPUT}"
+
+      - name: tofu plan (the digest is the only input)
+        working-directory: infra/prod
+        run: |
+          set -o pipefail
+          tofu plan -input=false -no-color -lock-timeout=60s -var "image_digest=${DIGEST}" -out=tfplan
+          tofu show -json tfplan > "${RUNNER_TEMP}/plan.json"
+
+      - name: Check that the plan only swaps the Lambda image
+        id: check
+        run: python3 scripts/check_deploy_plan.py "${RUNNER_TEMP}/plan.json" "${DIGEST}"
+
+      - name: tofu apply (the plan that was checked)
+        if: inputs.apply && steps.check.outputs.changes == 'true'
+        working-directory: infra/prod
+        run: tofu apply -input=false -no-color -lock-timeout=60s tfplan
+
+      - name: Check that the live API runs the deployed commit
+        if: inputs.apply
+        env:
+          COMMIT: ${{ steps.image.outputs.commit }}
+        working-directory: infra/prod
+        run: |
+          url="$(tofu output -no-color -raw function_url)"
+          python3 "${GITHUB_WORKSPACE}/scripts/verify_deploy.py" "${url}" "${COMMIT}"
+
+      - name: Summary
+        if: always()
+        env:
+          BEFORE: ${{ steps.before.outputs.digest }}
+          COMMIT: ${{ steps.image.outputs.commit }}
+          CHANGES: ${{ steps.check.outputs.changes }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          {
+            echo "### Deploy to prod"
+            echo "- mode: $([ "${APPLY}" = "true" ] && echo "apply" || echo "dry run (nothing applied)")"
+            echo "- deployed before: \`${BEFORE:-unknown}\`"
+            echo "- requested: \`${DIGEST}\` (commit \`${COMMIT:-unknown}\`)"
+            echo "- plan changes something: \`${CHANGES:-unknown}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

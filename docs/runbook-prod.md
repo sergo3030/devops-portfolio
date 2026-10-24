@@ -66,6 +66,40 @@ aws ecr describe-images --repository-name portfolio-api \
 `aws` and `docker` commands (`just test-scripts`, and in CI). The approval gate and the deploy
 itself are the rest of task 15.
 
+## Deploying (task 15, D41)
+
+After every image push, `build.yml` calls `deploy.yml`, and the job **`deploy (prod)` waits for your
+approval** in the Actions run (Review deployments, environment `prod`, `main` only). Rejecting it,
+or not answering, changes nothing. A newer pending approval replaces an older one.
+
+After you approve, it:
+
+1. assumes `portfolio-apply` (the only role that accepts the `prod` environment),
+2. finds the commit of the image from its `sha-<commit>` tag (and refuses a digest that is not in
+   the repository),
+3. plans `infra/prod` with `-var image_digest=<digest>`,
+4. runs `scripts/check_deploy_plan.py` on the plan as JSON: the only allowed change is an in-place
+   update of `aws_lambda_function.api[0]` whose **only** difference is `image_uri`, and it must end
+   in the approved digest. Anything else (a destroy, a create, another resource, another attribute)
+   fails with the reasons, and you apply by hand after reading the plan,
+5. applies that exact saved plan (skipped when nothing would change),
+6. calls `/health` on the function URL (with retries for the cold start) and requires `status: ok`
+   and `git_sha` equal to the image's commit (`scripts/verify_deploy.py`).
+
+The job summary lists the digest that was deployed before, the one requested and its commit.
+
+**Dry run:** Actions, `deploy`, Run workflow, untick `apply`. It does steps 1 to 4 and shows the plan,
+without changing production (the approval is still asked). Use it to read a plan first, or to
+check the permissions of the `apply` role.
+
+**Rollback:** Actions, `deploy`, Run workflow, with the digest of an older image. The last 3 images
+stay in ECR; list them with the command under "Building the image". The same checks run, so it is
+only done if the plan is an image swap.
+
+**You approve before you see the plan**, because the read-only `plan` role only works on pull
+requests. The safety check and the exact-saved-plan apply are the guard, and the dry run is the way
+to read a plan first.
+
 ### The scan (D39)
 
 Before the push, the smoke-tested image is scanned by Trivy (`scripts/scan-image.sh`). A
