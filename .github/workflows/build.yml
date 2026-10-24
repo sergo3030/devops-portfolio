@@ -4,7 +4,8 @@ name: build
 # The image is smoke-tested and scanned with Trivy first, and the one that passed is the one that
 # is pushed: an image with a fixable HIGH or CRITICAL vulnerability, or a secret, never reaches
 # ECR. The only tag is sha-<commit> (the repository's tags are immutable), and the job reports
-# the digest that the deploy uses. The approval gate and the deploy itself are the deploy workflow.
+# the digest that the deploy uses. The approval gate and the deploy itself are in deploy.yml, which
+# this workflow calls once the image is pushed.
 
 on:
   push:
@@ -109,3 +110,17 @@ jobs:
       - name: Tear down
         if: always() && steps.existing.outputs.found != 'true'
         run: docker compose down --volumes
+
+  # Every pushed image is offered for deployment. The job waits for the owner's approval in the
+  # protected `prod` environment (see deploy.yml). Rejecting it, or not answering, changes nothing.
+  deploy:
+    name: deploy (prod)
+    needs: build
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write # passed on to deploy.yml, which trades it for AWS credentials
+    with:
+      digest: ${{ needs.build.outputs.digest }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
