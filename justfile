@@ -24,6 +24,7 @@ lint-workflows:
 test-scripts:
     bash scripts/test-ecr-image.sh
     bash scripts/test-retry-and-trivy.sh
+    bash scripts/test-check-release.sh
 
 # Scan IaC, workflows and Dockerfiles (same check as CI)
 iac-scan:

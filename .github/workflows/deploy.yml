@@ -117,20 +117,22 @@ jobs:
         working-directory: infra/prod
         run: tofu apply -input=false -no-color -lock-timeout=60s tfplan
 
-      - name: Check that the live API runs the deployed commit
+      - name: Check that the live API runs the deployed commit and version
         if: inputs.apply
         env:
           COMMIT: ${{ steps.image.outputs.commit }}
+          VERSION: ${{ steps.image.outputs.version }}
         working-directory: infra/prod
         run: |
           url="$(tofu output -no-color -raw function_url)"
-          python3 "${GITHUB_WORKSPACE}/scripts/verify_deploy.py" "${url}" "${COMMIT}"
+          python3 "${GITHUB_WORKSPACE}/scripts/verify_deploy.py" "${url}" "${COMMIT}" "${VERSION}"
 
       - name: Summary
         if: always()
         env:
           BEFORE: ${{ steps.before.outputs.digest }}
           COMMIT: ${{ steps.image.outputs.commit }}
+          VERSION: ${{ steps.image.outputs.version }}
           CHANGES: ${{ steps.check.outputs.changes }}
           APPLY: ${{ inputs.apply }}
         run: |
@@ -138,6 +140,6 @@ jobs:
             echo "### Deploy to prod"
             echo "- mode: $([ "${APPLY}" = "true" ] && echo "apply" || echo "dry run (nothing applied)")"
             echo "- deployed before: \`${BEFORE:-unknown}\`"
-            echo "- requested: \`${DIGEST}\` (commit \`${COMMIT:-unknown}\`)"
+            echo "- requested: \`${DIGEST}\` (version \`${VERSION:-unknown}\`, commit \`${COMMIT:-unknown}\`)"
             echo "- plan changes something: \`${CHANGES:-unknown}\`"
           } >> "${GITHUB_STEP_SUMMARY}"

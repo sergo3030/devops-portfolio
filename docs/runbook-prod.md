@@ -100,6 +100,42 @@ only done if the plan is an image swap.
 requests. The safety check and the exact-saved-plan apply are the guard, and the dry run is the way
 to read a plan first.
 
+## Releasing (task 15a, D42)
+
+A release is a version tag. Only cut one from a commit that is on `main` and newer than this
+workflow.
+
+```bash
+git checkout main && git pull
+git tag -a v0.1.0 -m "First release"      # x.y.z only: digits, no leading zeros, no suffix
+git push origin v0.1.0                     # this starts the release
+```
+
+1. **`release-tag.yml`** runs on the tag push. It has no AWS access. It checks (`scripts/check-release.sh`)
+   that the version is plain `x.y.z`, that the tag points at the commit, and that the commit is on `main`,
+   then starts `release.yml` from `main`.
+2. **`release.yml`** checks the same again (it can also be started by hand from the Actions tab for an
+   existing tag), then builds the commit with `APP_VERSION=x.y.z`, runs the smoke test and the Trivy
+   scan, and pushes the image as **`vx.y.z`** and **`sha-<commit>-vx.y.z`** (both immutable).
+3. It creates the **GitHub Release** (`--verify-tag`, generated notes, plus a section with the image
+   digest). If the release already exists it does nothing, so a failed run can be repeated.
+4. It offers the image for deployment like any other: **`deploy (prod)` waits for your approval**.
+   The post-deploy check requires `/health` to report that version and the commit.
+
+**Why two workflows.** A job triggered by a tag push gets an AWS identity that names the *tag*, and a
+tag can point at any commit, even one with a changed workflow. So the roles that push images trust
+only runs from `main` (see the bootstrap runbook and D42), and the tag only starts a run on `main`. Anyone who can push tags
+can start a release build of a commit that is on `main`, but not of anything else.
+
+**If it fails:** fix the cause and run `release` again from the Actions tab with the same version and
+commit. The image tags are reused, never overwritten; if `vx.y.z` already points at a different
+image it fails, and a new version is needed. To undo a bad release, delete the GitHub Release and
+the tag on GitHub, and use a new version number (the image tags stay in ECR until the keep-3
+lifecycle removes them).
+
+**Versioning:** semantic versions. `0.x` while the API can still change shape. Every image from
+`main` reports `0.0.0-dev`, so only a release image reports a real version.
+
 ### The scan (D39)
 
 Before the push, the smoke-tested image is scanned by Trivy (`scripts/scan-image.sh`). A

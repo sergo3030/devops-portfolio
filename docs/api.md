@@ -27,9 +27,12 @@ clears. The route reads it through the `get_content` dependency, which tests can
 
 ## Version
 
-The running version has one source: the environment variable `APP_VERSION`, set by the release
-build from the git tag (task 15a), together with `GIT_SHA`. `/health` and the OpenAPI document
-report it, so you can tell which build is running. Without them the app reports `0.0.0-dev`.
+The running version has one source: the environment variable `APP_VERSION`, baked into the image
+as a build argument together with `GIT_SHA`. Every image built from `main` is `0.0.0-dev`; the
+release workflow (`release.yml`, task 15a) builds a tagged commit again with the version of the
+tag (`v1.2.3` gives `1.2.3`). `/health` and the OpenAPI document report it, so you can tell which
+build is running, and the deploy checks that the live API reports the version and commit of the
+image it deployed. Without the variables the app reports `0.0.0-dev`.
 The `version` in `pyproject.toml` is a placeholder and is not authoritative. Both variables are
 validated at start-up (a version like `1.4.2`, a lowercase hex SHA), and a test fails if a release
 version is hardcoded anywhere in the package.
