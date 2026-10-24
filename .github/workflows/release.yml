@@ -1,0 +1,114 @@
+name: release
+
+# Builds a release: the same checks as every image (smoke test, Trivy scan), with the version baked
+# in, pushed as v<version> and sha-<commit>-v<version>, then a GitHub Release with generated notes,
+# and the image offered for deployment (deploy.yml, which waits for the owner's approval).
+#
+# It is started by release-tag.yml when a tag vX.Y.Z is pushed, or by hand from the Actions tab for
+# a tag that already exists. It always runs from main, so the AWS role that pushes images never
+# sees a run from a tag or another branch.
+
+on:
+  # checkov:skip=CKV_GHA_7: The inputs do select what is built, so they are tightly constrained: the
+  # version must be plain x.y.z, the tag v<version> must exist and point at exactly the given
+  # commit, and that commit must be on main (scripts/check-release.sh, run again here although
+  # release-tag.yml already ran it). The source built is therefore always code that passed review
+  # on main, and the run can only start from main.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version without a v, for example 1.2.3 (the tag v1.2.3 must exist)"
+        required: true
+        type: string
+      commit:
+        description: "The full commit hash the tag points at"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: check (release)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      VERSION: ${{ inputs.version }}
+      COMMIT: ${{ inputs.commit }}
+    steps:
+      - name: Only from main
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "a release can only be started from the main branch" >&2
+            exit 1
+          fi
+
+      - name: Check out the history of main and the tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the version, the tag and that the commit is on main
+        run: MAIN_REF=origin/main bash scripts/check-release.sh "${VERSION}" "${COMMIT}"
+
+  image:
+    name: build
+    needs: check
+    uses: ./.github/workflows/image.yml
+    permissions:
+      contents: read
+      id-token: write # passed on to image.yml, which trades it for AWS credentials
+    with:
+      commit: ${{ inputs.commit }}
+      version: ${{ inputs.version }}
+      image_tag: v${{ inputs.version }}
+      extra_tags: sha-${{ inputs.commit }}-v${{ inputs.version }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  release:
+    name: release (github)
+    needs: [check, image]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # creates the GitHub Release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      COMMIT: ${{ inputs.commit }}
+      DIGEST: ${{ needs.image.outputs.digest }}
+    steps:
+      - name: Create the GitHub Release (generated notes, with the image digest)
+        run: |
+          tag="v${VERSION}"
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "the release ${tag} already exists, nothing to create"
+            exit 0
+          fi
+          gh release create "${tag}" --repo "${GITHUB_REPOSITORY}" --verify-tag --latest \
+            --title "${tag}" --generate-notes
+          body="$(gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
+          section="$(printf '## Container image\n\n- digest: `%s`\n- tags: `%s`, `sha-%s-%s`\n- `/health` reports version `%s` and commit `%s`\n\nTo roll back or forward, run the deploy workflow with this digest.\n' \
+            "${DIGEST}" "${tag}" "${COMMIT}" "${tag}" "${VERSION}" "${COMMIT}")"
+          gh release edit "${tag}" --repo "${GITHUB_REPOSITORY}" --notes "${body}"$'\n\n'"${section}"
+
+  # The release image is offered for deployment like every image. The job waits for the owner's
+  # approval in the protected `prod` environment (see deploy.yml).
+  deploy:
+    name: deploy (prod)
+    needs: image
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write # passed on to deploy.yml, which trades it for AWS credentials
+    with:
+      digest: ${{ needs.image.outputs.digest }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

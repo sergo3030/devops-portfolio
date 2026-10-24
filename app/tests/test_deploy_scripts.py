@@ -206,48 +206,63 @@ def api(responses: list[tuple[int, dict[str, Any]]]) -> Iterator[str]:
 
 
 HEALTHY = (200, {"status": "ok", "version": "0.0.0-dev", "git_sha": COMMIT})
+RELEASED = (200, {"status": "ok", "version": "1.2.3", "git_sha": COMMIT})
 
 
-def test_a_healthy_api_on_the_expected_commit_verifies() -> None:
+def test_a_healthy_api_on_the_expected_commit_and_version_verifies() -> None:
     with api([HEALTHY]) as url:
-        assert verify.main([url, COMMIT, "1", "0"]) == 0
+        assert verify.main([url, COMMIT, "0.0.0-dev", "1", "0"]) == 0
+    with api([RELEASED]) as url:
+        assert verify.main([url, COMMIT, "1.2.3", "1", "0"]) == 0
 
 
 def test_the_wrong_commit_does_not_verify() -> None:
-    with api([(200, {"status": "ok", "git_sha": OTHER_COMMIT})]) as url:
-        assert verify.main([url, COMMIT, "2", "0"]) == 1
+    wrong = (200, {"status": "ok", "version": "0.0.0-dev", "git_sha": OTHER_COMMIT})
+    with api([wrong]) as url:
+        assert verify.main([url, COMMIT, "0.0.0-dev", "2", "0"]) == 1
+
+
+def test_the_wrong_version_does_not_verify() -> None:
+    """A release that still runs the development build is not a successful release."""
+    with api([HEALTHY]) as url:
+        assert verify.main([url, COMMIT, "1.2.3", "2", "0"]) == 1
+    with api([(200, {"status": "ok", "git_sha": COMMIT})]) as url:  # no version at all
+        assert verify.main([url, COMMIT, "0.0.0-dev", "2", "0"]) == 1
 
 
 @pytest.mark.parametrize(
     "response",
     [
         (500, {"detail": "boom"}),
-        (200, {"status": "degraded", "git_sha": COMMIT}),
-        (200, {"git_sha": COMMIT}),
+        (200, {"status": "degraded", "version": "0.0.0-dev", "git_sha": COMMIT}),
+        (200, {"version": "0.0.0-dev", "git_sha": COMMIT}),
     ],
 )
 def test_an_unhealthy_api_does_not_verify(response: tuple[int, dict[str, Any]]) -> None:
     with api([response]) as url:
-        assert verify.main([url, COMMIT, "2", "0"]) == 1
+        assert verify.main([url, COMMIT, "0.0.0-dev", "2", "0"]) == 1
 
 
 def test_it_waits_for_a_cold_or_still_updating_function() -> None:
-    old = (200, {"status": "ok", "git_sha": OTHER_COMMIT})
+    old = (200, {"status": "ok", "version": "0.0.0-dev", "git_sha": OTHER_COMMIT})
     with api([(500, {}), old, HEALTHY]) as url:
-        assert verify.main([url, COMMIT, "5", "0"]) == 0
+        assert verify.main([url, COMMIT, "0.0.0-dev", "5", "0"]) == 0
 
 
 def test_an_unreachable_api_does_not_verify() -> None:
-    assert verify.main(["http://127.0.0.1:1", COMMIT, "1", "0"]) == 1
+    assert verify.main(["http://127.0.0.1:1", COMMIT, "0.0.0-dev", "1", "0"]) == 1
 
 
 @pytest.mark.parametrize(
     "argv",
     [
         [],
-        ["http://example.com", COMMIT],  # plain http to a remote host
-        ["https://example.com", "main"],  # not a full commit hash
-        ["https://example.com", COMMIT[:7]],
+        ["https://example.com", COMMIT],  # the version is required
+        ["http://example.com", COMMIT, "0.0.0-dev"],  # plain http to a remote host
+        ["https://example.com", "main", "0.0.0-dev"],  # not a full commit hash
+        ["https://example.com", COMMIT[:7], "0.0.0-dev"],
+        ["https://example.com", COMMIT, "not a version"],
+        ["https://example.com", COMMIT, ""],
     ],
 )
 def test_bad_arguments_are_rejected_before_any_request(argv: list[str]) -> None:

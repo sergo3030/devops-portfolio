@@ -1,11 +1,8 @@
 name: build
 
-# Builds the API image after a merge to main and pushes it to ECR through the ecr-push role.
-# The image is smoke-tested and scanned with Trivy first, and the one that passed is the one that
-# is pushed: an image with a fixable HIGH or CRITICAL vulnerability, or a secret, never reaches
-# ECR. The only tag is sha-<commit> (the repository's tags are immutable), and the job reports
-# the digest that the deploy uses. The approval gate and the deploy itself are in deploy.yml, which
-# this workflow calls once the image is pushed.
+# Builds the API image after a merge to main (image.yml) and offers it for deployment (deploy.yml).
+# The image is tagged sha-<commit> and reports version 0.0.0-dev: a release is a separate workflow
+# (release.yml) that builds the same commit again with its version baked in.
 
 on:
   push:
@@ -23,6 +20,7 @@ on:
       - ".trivyignore.yaml"
       - "docker-compose.yml"
       - ".github/workflows/build.yml"
+      - ".github/workflows/image.yml"
   workflow_dispatch:
 
 permissions:
@@ -34,82 +32,17 @@ concurrency:
 
 jobs:
   build:
-    name: build (image)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    outputs:
-      digest: ${{ steps.report.outputs.digest }}
-      tag: ${{ steps.report.outputs.tag }}
+    name: build
+    uses: ./.github/workflows/image.yml
     permissions:
-      contents: read # default, stated for clarity
-      id-token: write # trade the OIDC token for AWS credentials, nothing else
-    env:
-      AWS_REGION: us-east-1
-      ECR_REPOSITORY: portfolio-api
-      GIT_SHA: ${{ github.sha }}
-      # Lambda rejects an image index, so switch provenance attestations off.
-      BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
-      APP_VERSION: "0.0.0-dev"
-    steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Assume the ecr-push role
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          # A secret on purpose: GitHub masks it everywhere in the public logs.
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-ecr-push
-          role-session-name: build-${{ github.run_id }}
-          aws-region: us-east-1
-
-      - name: Is there already an image for this commit?
-        id: existing
-        run: bash scripts/ecr-image.sh lookup
-
-      # The adapter image comes from public.ecr.aws, which rate limits anonymous pulls. This job
-      # already has AWS credentials, so it logs in (D40). If the login fails, the pull is anonymous.
-      - name: Log in to public ECR (authenticated pulls)
-        if: steps.existing.outputs.found != 'true'
-        run: bash scripts/ecr-public-login.sh
-
-      - name: Build the image and start the stack
-        if: steps.existing.outputs.found != 'true'
-        # public.ecr.aws and ghcr.io sometimes answer 429 to the shared runners, so the pull is retried.
-        run: bash scripts/retry.sh 3 30 -- docker compose up --build --detach --wait --wait-timeout 90
-
-      - name: Smoke test
-        if: steps.existing.outputs.found != 'true'
-        run: bash scripts/smoke-test-container.sh
-
-      - name: Install Trivy (checksum pinned)
-        if: steps.existing.outputs.found != 'true'
-        run: bash scripts/install-trivy.sh
-
-      - name: Scan the image (fixable HIGH and CRITICAL vulnerabilities, secrets)
-        if: steps.existing.outputs.found != 'true'
-        run: bash scripts/scan-image.sh portfolio-api:ci
-
-      - name: Push the image that passed the smoke test and the scan
-        if: steps.existing.outputs.found != 'true'
-        env:
-          # The registry host contains the account ID, which GitHub masks because it is a secret.
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: |
-          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" bash scripts/ecr-image.sh push
-
-      - name: Report the digest ECR holds
-        id: report
-        run: bash scripts/ecr-image.sh report
-
-      - name: Container logs on failure
-        if: failure() && steps.existing.outputs.found != 'true'
-        run: docker compose logs --no-color
-
-      - name: Tear down
-        if: always() && steps.existing.outputs.found != 'true'
-        run: docker compose down --volumes
+      contents: read
+      id-token: write # passed on to image.yml, which trades it for AWS credentials
+    with:
+      commit: ${{ github.sha }}
+      version: "0.0.0-dev"
+      image_tag: sha-${{ github.sha }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
   # Every pushed image is offered for deployment. The job waits for the owner's approval in the
   # protected `prod` environment (see deploy.yml). Rejecting it, or not answering, changes nothing.

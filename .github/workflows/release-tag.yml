@@ -1,0 +1,45 @@
+name: release-tag
+
+# Pushing a tag vX.Y.Z starts a release. This workflow only checks the tag and hands over to
+# release.yml, which runs from main. It has no AWS access on purpose: a job triggered by a tag gets
+# an identity that names the tag, and a tag can point at any commit, so the roles that push images
+# trust only runs from the main branch. See docs/runbook-prod.md ("Releasing").
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-tag-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  start:
+    name: start the release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # default, stated for clarity
+      actions: write # to start release.yml
+    env:
+      TAG: ${{ github.ref_name }}
+      COMMIT: ${{ github.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the history of main and the tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag (plain x.y.z, on a commit of main)
+        run: MAIN_REF=origin/main bash scripts/check-release.sh "${TAG#v}" "${COMMIT}"
+
+      - name: Start the release from main
+        run: |
+          gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main \
+            -f "version=${TAG#v}" -f "commit=${COMMIT}"

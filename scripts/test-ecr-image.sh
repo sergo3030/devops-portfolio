@@ -18,7 +18,23 @@ cat >"${work}/bin/aws" <<'EOF'
 echo "aws $*" >>"${FAKE_LOG}"
 case "$1 $2" in
   "ecr describe-images")
+    # FAKE_TAGS="tag=digest;tag=digest" answers per tag, for the tests of several tags.
+    if [ -n "${FAKE_TAGS:-}" ]; then
+      want=""
+      for a in "$@"; do case "$a" in imageTag=*) want="${a#imageTag=}" ;; esac; done
+      if [ -n "${want}" ]; then
+        entry="$(printf '%s' "${FAKE_TAGS}" | tr ';' '\n' | grep "^${want}=" || true)"
+        if [ -n "${entry}" ]; then
+          printf '%s\t%s\n' "${entry#*=}" "application/vnd.docker.distribution.manifest.v2+json"
+          exit 0
+        fi
+        echo "An error occurred (ImageNotFoundException) when calling the DescribeImages operation: not found" >&2
+        exit 254
+      fi
+    fi
     case "${FAKE_AWS_MODE}" in
+      by_digest_release) printf 'v1.2.3\tsha-0123456789abcdef0123456789abcdef01234567-v1.2.3\n' ;;
+      by_digest_both) printf 'sha-0123456789abcdef0123456789abcdef01234567\tsha-0123456789abcdef0123456789abcdef01234567-v1.2.3\n' ;;
       found) printf '%s\t%s\n' "${FAKE_DIGEST}" "application/vnd.oci.image.manifest.v1+json" ;;
       docker_manifest) printf '%s\t%s\n' "${FAKE_DIGEST}" "application/vnd.docker.distribution.manifest.v2+json" ;;
       index) printf '%s\t%s\n' "${FAKE_DIGEST}" "application/vnd.oci.image.index.v1+json" ;;
@@ -36,6 +52,8 @@ case "$1 $2" in
         ;;
     esac
     ;;
+  "ecr batch-get-image") echo '{"schemaVersion":2,"fake":"manifest"}' ;;
+  "ecr put-image") ;;
   "ecr get-login-password") echo "fake-password" ;;
   "ecr-public get-login-password")
     case "${FAKE_AWS_MODE}" in
@@ -156,6 +174,59 @@ if [ "${status}" -eq 0 ] && grep -q '^::warning::docker login' "${work}/out" && 
   pass "a docker login failure only warns, without printing the token"
 else fail "a failing docker login must warn and exit 0"; fi
 
+# ---------------------------------------------------------------- release tags (IMAGE_TAG, EXTRA_TAGS)
+
+rel() { # <command> <FAKE_TAGS> [extra env assignments...]
+  local command="$1" tags="$2"
+  shift 2
+  : >"${work}/log"
+  : >"${work}/out"
+  status=0
+  env PATH="${work}/bin:${PATH}" FAKE_LOG="${work}/log" FAKE_AWS_MODE=found FAKE_TAGS="${tags}" \
+    ECR_REPOSITORY=portfolio-api AWS_REGION=us-east-1 GIT_SHA="${sha}" GITHUB_OUTPUT="${work}/out" \
+    IMAGE_TAG=v1.2.3 EXTRA_TAGS="sha-${sha}-v1.2.3" "$@" bash "${script}" "${command}" 2>"${work}/err" || status=$?
+}
+
+rel lookup "v1.2.3=${digest}"
+if [ "${status}" -eq 0 ] && grep -qx 'found=true' "${work}/out" && grep -q -- '--image-ids imageTag=v1.2.3' "${work}/log"; then
+  pass "a release is looked up by its version tag, not by the commit tag"
+else fail "lookup should use IMAGE_TAG"; fi
+
+rel lookup "sha-${sha}=${digest}"
+if [ "${status}" -eq 0 ] && grep -qx 'found=false' "${work}/out"; then
+  pass "an existing development image of the same commit does not count as the release"
+else fail "the commit tag must not satisfy a release lookup"; fi
+
+rel push "" ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+pushes="$(grep -c '^docker push' "${work}/log" || true)"
+if [ "${status}" -eq 0 ] && [ "${pushes}" -eq 1 ] && grep -qx "docker push --quiet 123456789012.dkr.ecr.us-east-1.amazonaws.com/portfolio-api:v1.2.3" "${work}/log"; then
+  pass "push sends the image once, under the main tag only"
+else fail "push should push only IMAGE_TAG (pushes=${pushes})"; fi
+
+rel extra-tags "v1.2.3=${digest}"
+if [ "${status}" -eq 0 ] && grep -q -- "put-image .*--image-tag sha-${sha}-v1.2.3 " "${work}/log"; then
+  pass "the missing extra tag is added to the same image with its manifest"
+else fail "extra-tags should put the missing tag"; fi
+
+rel extra-tags "v1.2.3=${digest};sha-${sha}-v1.2.3=${digest}"
+if [ "${status}" -eq 0 ] && ! grep -q 'put-image' "${work}/log"; then
+  pass "extra tags that already point at the image are left alone (a repeated run is safe)"
+else fail "an existing extra tag must not be put again"; fi
+
+rel extra-tags "v1.2.3=${digest};sha-${sha}-v1.2.3=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+if [ "${status}" -ne 0 ] && grep -q 'already points at a different image' "${work}/err" && ! grep -q 'put-image' "${work}/log"; then
+  pass "an extra tag that points at another image is an error, never overwritten"
+else fail "a conflicting extra tag must fail"; fi
+
+rel extra-tags "v1.2.3=${digest}" EXTRA_TAGS=
+if [ "${status}" -eq 0 ] && ! grep -q 'put-image' "${work}/log"; then pass "no extra tags means nothing to do"; else fail "empty EXTRA_TAGS must be a no-op"; fi
+
+rel extra-tags "unrelated=${digest}"
+if [ "${status}" -ne 0 ]; then pass "extra tags cannot be added to an image that is not in ECR"; else fail "extra-tags needs the main image"; fi
+
+rel lookup "" IMAGE_TAG="latest tag"
+if [ "${status}" -ne 0 ]; then pass "an invalid tag name is rejected"; else fail "invalid tags must be rejected"; fi
+
 # ---------------------------------------------------------------- image-commit.sh
 
 commit_of() { # <aws mode> <digest>
@@ -171,6 +242,18 @@ if [ "${status}" -eq 0 ] && grep -qx 'commit=0123456789abcdef0123456789abcdef012
   && grep -q -- "--image-ids imageDigest=${digest}" "${work}/log"; then
   pass "the commit is read from the sha-<commit> tag of the digest, ignoring other tags"
 else fail "image-commit should return the commit from the sha- tag"; fi
+
+if grep -qx 'version=0.0.0-dev' "${work}/out"; then pass "an image with only a commit tag is a development build (0.0.0-dev)"; else fail "a commit-only tag means version 0.0.0-dev"; fi
+
+commit_of by_digest_release "${digest}"
+if [ "${status}" -eq 0 ] && grep -qx 'commit=0123456789abcdef0123456789abcdef01234567' "${work}/out" && grep -qx 'version=1.2.3' "${work}/out"; then
+  pass "a release image gives its commit and its version from the sha-<commit>-v<version> tag"
+else fail "image-commit should read the version of a release image"; fi
+
+commit_of by_digest_both "${digest}"
+if [ "${status}" -eq 0 ] && grep -qx 'version=1.2.3' "${work}/out" && ! grep -q 'version=0.0.0-dev' "${work}/out"; then
+  pass "the release tag wins over a plain commit tag"
+else fail "a release tag must win"; fi
 
 commit_of by_digest_untagged "${digest}"
 if [ "${status}" -ne 0 ] && ! grep -q commit= "${work}/out" && grep -q 'no sha-<commit> tag' "${work}/err"; then

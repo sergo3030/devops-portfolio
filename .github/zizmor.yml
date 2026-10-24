@@ -7,7 +7,8 @@ rules:
 
   # GitHub added a `$/...` form for calling a workflow of the same repository, and zizmor prefers
   # it to `./...`. actionlint (a required check, checked on 1.7.12) rejects `$/...`, while `./...`
-  # is valid GitHub syntax, so build.yml keeps `./`. Remove this when actionlint accepts `$/`.
+  # is valid GitHub syntax, so these workflows keep `./`. Remove this when actionlint accepts `$/`.
   self-repository:
     ignore:
-      - build.yml:119
+      - build.yml
+      - release.yml

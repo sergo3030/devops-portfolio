@@ -51,6 +51,7 @@ jobs:
         run: |
           bash scripts/test-ecr-image.sh
           bash scripts/test-retry-and-trivy.sh
+          bash scripts/test-check-release.sh
 
   python:
     name: python (ruff, pytest)

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Finds the commit an image in ECR was built from, given its digest, so that a deploy can check
-# that the running API reports exactly that commit.
+# Finds the commit and the version an image in ECR was built from, given its digest, so that a
+# deploy can check that the running API reports exactly that commit and version.
 #
-#   image-commit.sh <sha256:digest>     writes commit=<40 hex> to $GITHUB_OUTPUT (stdout if unset)
+#   image-commit.sh <sha256:digest>     writes commit=<40 hex> and version=<x.y.z> to $GITHUB_OUTPUT
+#                                       (stdout if unset)
 #
-# The build tags every image sha-<commit> (and only that), so the commit is read from the tag.
+# The build tags every image sha-<commit>, and a release also sha-<commit>-v<x.y.z>, so both are
+# read from the tags: an image with only sha-<commit> is a development build (0.0.0-dev).
 # It fails for a digest that is not in the repository or has no such tag, which also makes a
 # mistyped or foreign digest a clear error before anything is planned.
 # Environment: ECR_REPOSITORY, AWS_REGION.
@@ -33,12 +35,20 @@ if ! tags="$(aws ecr describe-images --region "${region}" --repository-name "${r
   exit 1
 fi
 
+# A release tag (with the version) wins over a plain commit tag if an image ever had both.
+found=""
 for tag in ${tags}; do
+  if [[ "${tag}" =~ ^sha-([0-9a-f]{40})-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    found="commit=${BASH_REMATCH[1]}"$'\n'"version=${BASH_REMATCH[2]}"
+    break
+  fi
   if [[ "${tag}" =~ ^sha-([0-9a-f]{40})$ ]]; then
-    echo "commit=${BASH_REMATCH[1]}" >>"${out}"
-    exit 0
+    found="commit=${BASH_REMATCH[1]}"$'\n'"version=0.0.0-dev"
   fi
 done
 
-echo "${digest} has no sha-<commit> tag, so the commit it was built from is unknown" >&2
-exit 1
+if [ -z "${found}" ]; then
+  echo "${digest} has no sha-<commit> tag, so the commit it was built from is unknown" >&2
+  exit 1
+fi
+echo "${found}" >>"${out}"
