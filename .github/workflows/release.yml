@@ -95,8 +95,16 @@ jobs:
           gh release create "${tag}" --repo "${GITHUB_REPOSITORY}" --verify-tag --latest \
             --title "${tag}" --generate-notes
           body="$(gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body)"
-          section="$(printf '## Container image\n\n- digest: `%s`\n- tags: `%s`, `sha-%s-%s`\n- `/health` reports version `%s` and commit `%s`\n\nTo roll back or forward, run the deploy workflow with this digest.\n' \
-            "${DIGEST}" "${tag}" "${COMMIT}" "${tag}" "${VERSION}" "${COMMIT}")"
+          section="$(cat <<EOF
+          ## Container image
+
+          - digest: \`${DIGEST}\`
+          - tags: \`${tag}\`, \`sha-${COMMIT}-${tag}\`
+          - \`/health\` reports version \`${VERSION}\` and commit \`${COMMIT}\`
+
+          To roll back or forward, run the deploy workflow with this digest.
+          EOF
+          )"
           gh release edit "${tag}" --repo "${GITHUB_REPOSITORY}" --notes "${body}"$'\n\n'"${section}"
 
   # The release image is offered for deployment like every image. The job waits for the owner's

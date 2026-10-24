@@ -15,7 +15,7 @@ check:
 
 # Lint GitHub Actions workflows (same checks as CI)
 lint-workflows:
-    actionlint
+    uvx --from actionlint-py==1.7.12.25 actionlint
     uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
     uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
     ! grep -rnE 'vars\.AWS_ACCOUNT_ID|arn:aws:[a-z0-9-]*::[0-9]{12}' --exclude=ci.yml .github/workflows
