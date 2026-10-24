@@ -27,6 +27,10 @@ on:
       AWS_ACCOUNT_ID:
         description: "AWS account ID, used to build the role ARN (a secret so that GitHub masks it)"
         required: true
+  # checkov:skip=CKV_GHA_7: These inputs do not affect any build output: this workflow builds nothing.
+  # The digest only selects an image that was already built and scanned, for a rollback. It is
+  # validated (sha256 format, must exist in ECR with a sha-<commit> tag), and the job runs only
+  # after the owner approves it in the prod environment, on main.
   workflow_dispatch:
     inputs:
       digest:
