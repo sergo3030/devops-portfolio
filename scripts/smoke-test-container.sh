@@ -112,7 +112,9 @@ ok "oversized headers (431) and URLs (414) are refused"
 
 # No secrets in the image: no secret-looking variable, and none of the usual secret files.
 env_names="$(docker image inspect "${image}" --format '{{range .Config.Env}}{{println .}}{{end}}' | cut -d= -f1)"
-if echo "${env_names}" | grep -Ei 'KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL'; then
+# GPG_KEY is set by the official python base image: the public ID of the key that signs Python
+# releases, not a secret. It is the one name allowed to look like one.
+if echo "${env_names}" | grep -vx 'GPG_KEY' | grep -Ei 'KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL'; then
   fail "the image sets a secret-looking environment variable"
 fi
 leftovers="$(docker compose exec -T api sh -c \
