@@ -22,6 +22,7 @@ months ($0 baseline). Lambda concurrent executions quota: 10 (task 6).
 | Repository created as private. Made public through OpenTofu on 2026-10-21 | Bootstrapping: the repo must exist before OpenTofu can manage it (task 7) |
 | Fork PR approval set to `all_external_contributors` (`gh api`, 2026-10-21). Verified by `just github-settings-check` | No provider resource exists for it |
 | Private vulnerability reporting enabled (`gh api`, 2026-10-21). Verified by `just github-settings-check`. `SECURITY.md` points to it | No provider resource exists for it |
+| Dependabot secret `AWS_ACCOUNT_ID` (Settings, Secrets and variables, Dependabot, 2026-10-25), same value as the Actions secret of that name | **An experiment, to be codified or deleted.** Workflows that Dependabot triggers cannot read Actions secrets, so the AWS login failed with an empty account ID (D51). The provider does have a resource for it (`github_dependabot_secret`), so if it helps it moves into `infra/github` and the apply overwrites this value with the same one; if GitHub does not issue OIDC tokens to Dependabot runs it is deleted again |
 | Account settings "Keep my email addresses private" and "Block command line pushes that expose my email" (both on, github.com/settings/emails) | Account settings are not exposed by the API or the provider |
 
 To find every resource of the project, see [inventory.md](inventory.md).
