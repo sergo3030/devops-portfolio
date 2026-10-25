@@ -44,6 +44,27 @@ resource "aws_budgets_budget" "monthly" {
   }
 }
 
+# A test of the alert path (task 18). The real Budget stays untouched. This one is far below the
+# month's spend, so AWS sends an email at its next evaluation. It is off by default and has no
+# `ignore_changes`: it exists only while the test runs. Budgets without actions are free.
+resource "aws_budgets_budget" "alert_test" {
+  count = var.budget_alert_test ? 1 : 0
+
+  name         = "${var.name_prefix}-alert-test"
+  budget_type  = "COST"
+  limit_amount = "0.01"
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 1
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.budget_alert_email]
+  }
+}
+
 resource "aws_ce_anomaly_monitor" "services" {
   name              = "${var.name_prefix}-services"
   monitor_type      = "DIMENSIONAL"

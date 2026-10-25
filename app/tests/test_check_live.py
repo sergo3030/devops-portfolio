@@ -243,6 +243,16 @@ def test_each_way_the_api_can_be_wrong_is_noticed(fake: Fake, expected: str) -> 
     assert any(p.startswith(expected) for p in problems), problems
 
 
+def test_an_api_that_is_down_passes_none_of_the_checks_that_need_an_answer() -> None:
+    """With the brake on (429 everywhere) a check must not pass just because nothing was sent."""
+    fake = Fake(health_status=500)
+    with world(fake) as site_url:
+        report = live.check_once(site_url)
+    names = [p.split(":")[0] for p in report.problems]
+    assert "CORS for another website" in names
+    assert not any(f.startswith("CORS for another website") for f in report.facts)
+
+
 def test_a_server_banner_that_is_not_ours_is_fine() -> None:
     """The platform in front of the function may add its own banner. Only our own is a leak."""
     assert problems_of(Fake(server_banner="AmazonS3")) == []

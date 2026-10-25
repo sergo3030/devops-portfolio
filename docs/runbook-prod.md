@@ -249,3 +249,38 @@ Normal use costs a few cents a month (ECR storage of 3 images). The URL is publi
 sustained flood could cost real money before the $1 Budget email reaches anyone: a concurrency
 cap only bounds it partly. The site calls the URL since task 16b; CORS does not protect it from other callers (D43). The cap
 is 2; `reserved_concurrency = 0` is the emergency brake.
+
+### Cost guards, and how each was tested (task 18, D47)
+
+AWS has no hard cap, so these are alerts and limits, checked on 2026-10-25:
+
+| Guard | What it does | Tested |
+|---|---|---|
+| Reserved concurrency 2 | At most 2 requests run at once; more get `429` | `get-function-concurrency` says 2 (account quota 40, 38 unreserved). 40 parallel `/health` gave 25 × 200 and 15 × 429, 60 parallel `/content` gave 52 × 200 and 8 × 429. The CloudWatch `Throttles` metric lags and still read 0 |
+| Emergency brake | `reserved_concurrency = 0` refuses every request | Applied for real: `429 ReservedFunctionConcurrentInvocationLimitExceeded` on `/health` and `/content`, the site showed "API offline: showing the saved copy", `synthetic` failed. Restored: "Live from API · version 0.1.1", `synthetic` passed, a plan said No changes. It took about 5 minutes of downtime in all |
+| Budget `portfolio-monthly-1usd` | Emails at 80% actual, 100% forecast, 100% actual | A second budget alerts on any spend (below); month-to-date spend was $0.002 |
+| Cost Anomaly Detection | Daily email for an anomaly of $1 or more | Cannot be triggered on demand; only its existence (in the state) is checked |
+| Small function | 512 MB, 10 s, no provisioned concurrency, logs kept 7 days, ECR keeps 3 images | Read back with the CLI |
+
+**Alerts are late.** AWS evaluates Budgets a few times a day and bills with a delay, so a flood can
+spend for hours before any email. The cap (2) and the brake are the real protection; the email is
+the backstop.
+
+**The brake**, from the owner's machine with an `aws login` session (full plan first, as always):
+
+```bash
+D="$(tofu -chdir=infra/prod output -raw deployed_image_digest)"
+tofu -chdir=infra/prod plan -var "image_digest=$D" -var reserved_concurrency=0 -out=tfplan
+tofu -chdir=infra/prod apply tfplan          # the API now answers 429 to everyone
+# to release it: the same plan without the reserved_concurrency variable, then apply
+```
+
+Or, faster and with no state change to review, set the cap in the Lambda console, then bring the
+code back in line. The deploy workflow refuses a plan that changes anything but the image, so it
+will not undo a brake by itself.
+
+**Testing the alert path** (free, about a day): `tofu -chdir=infra/bootstrap apply -var
+budget_alert_test=true` creates `portfolio-alert-test`, a $0.01 budget that alerts on any actual
+spend. Wait for the email (AWS checks a few times a day, so up to about 8 hours), then apply
+without the variable to remove it. It needs month-to-date spend above $0.0001: check it with
+`aws budgets describe-budgets --account-id <id>`. The email subject names the budget.

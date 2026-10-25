@@ -131,6 +131,35 @@ run "existing_oidc_provider_is_reused_when_requested" {
   }
 }
 
+run "the_alert_test_budget_is_off_by_default" {
+  assert {
+    condition     = length(aws_budgets_budget.alert_test) == 0
+    error_message = "the test budget must not exist unless budget_alert_test is true"
+  }
+}
+
+run "the_alert_test_budget_alerts_on_any_actual_spend" {
+  variables {
+    budget_alert_test = true
+  }
+
+  assert {
+    condition = (
+      length(aws_budgets_budget.alert_test) == 1
+      && aws_budgets_budget.alert_test[0].limit_amount == "0.01"
+      && length(aws_budgets_budget.alert_test[0].notification) == 1
+      && one(aws_budgets_budget.alert_test[0].notification).notification_type == "ACTUAL"
+      && one(aws_budgets_budget.alert_test[0].notification).threshold == 1
+    )
+    error_message = "the test budget must be 0.01 USD with one ACTUAL alert at 1 percent"
+  }
+
+  assert {
+    condition     = aws_budgets_budget.monthly.limit_amount == "1"
+    error_message = "turning the test on must not change the real budget"
+  }
+}
+
 run "budget_is_one_dollar_monthly" {
   assert {
     condition     = aws_budgets_budget.monthly.limit_amount == "1" && aws_budgets_budget.monthly.time_unit == "MONTHLY"
