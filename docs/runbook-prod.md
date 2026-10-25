@@ -47,7 +47,9 @@ plan shows only what the pull request changes.
 ## Building the image (task 14b)
 
 `.github/workflows/build.yml` runs after a merge to `main` that changes the image's inputs (and
-on demand from the Actions tab, from `main`). It assumes the `portfolio-ecr-push` role, which
+on demand from the Actions tab, from `main`). The list of paths in `build.yml` is exactly what goes
+into the image (D49): a test or a doc change creates no build and no approval, and
+`scripts/check-build-paths.sh` fails in CI if the list and the image ever disagree. It assumes the `portfolio-ecr-push` role, which
 trusts only `refs/heads/main`, so it cannot run from a branch. It builds with Compose, runs the
 smoke test, and pushes **the image that passed** as `sha-<full commit hash>`. The tag is the
 only one: the repository's tags are immutable. If the commit already has an image, the job

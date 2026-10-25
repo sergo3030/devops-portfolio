@@ -37,13 +37,16 @@ variables {
   budget_alert_email = "alerts@example.com"
 }
 
-run "plan_role_trusts_only_pull_requests_of_this_repo" {
+run "plan_role_trusts_only_pull_requests_and_main_of_this_repo" {
   assert {
     condition = (
-      jsondecode(aws_iam_role.plan.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"]
-      == "repo:sergo3030@61195883/devops-portfolio@1425913518:pull_request"
+      toset(jsondecode(aws_iam_role.plan.assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"])
+      == toset([
+        "repo:sergo3030@61195883/devops-portfolio@1425913518:pull_request",
+        "repo:sergo3030@61195883/devops-portfolio@1425913518:ref:refs/heads/main",
+      ])
     )
-    error_message = "plan role must trust only the pull_request subject of this repository"
+    error_message = "plan role must trust only the pull_request and main-branch subjects of this repository"
   }
 
   assert {

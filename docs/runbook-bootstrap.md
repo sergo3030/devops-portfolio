@@ -56,7 +56,7 @@ Both resources are free and are recreated in seconds.
 
 | Role | Trusts (OIDC subject) | Can do |
 |---|---|---|
-| `portfolio-plan` | pull request of this repository | Read the project's resources, read state, write only `.tflock` objects |
+| `portfolio-plan` | pull request of this repository, and the main branch (only so CI on main can log in to public ECR, D49) | Read the project's resources, read state, write only `.tflock` objects |
 | `portfolio-ecr-push` | push to `main` | Push to the one ECR repository |
 | `portfolio-apply` | job in the `prod` environment (needs the owner's approval) | Today: read and write the `prod/` state keys only. Permissions for the prod root come in task 14 |
 
@@ -65,7 +65,7 @@ Both resources are free and are recreated in seconds.
 | Workflow | Role | When | Notes |
 |---|---|---|---|
 | `plan.yml` | `portfolio-plan` | Pull requests of this repository that change `infra/bootstrap/**` or `infra/prod/**` (one job per root) | `tofu plan` with a placeholder email. The full plan is in the job log, where the account ID is masked. The job summary shows only the one-line result. Fork pull requests are skipped. |
-| `ci.yml`, job `image` | `portfolio-plan` | Pull requests of this repository (not forks) | Only to log in to public ECR, so the adapter image is pulled with the AWS account's limits and not the shared anonymous ones (D40). The step may fail without failing the job. |
+| `ci.yml`, jobs `image` and `e2e` | `portfolio-plan` | Pull requests of this repository (not forks) and pushes to `main` | Only to log in to public ECR, so the adapter image is pulled with the AWS account's limits and not the shared anonymous ones (D40). The step may fail without failing the job. |
 | `build.yml` | `portfolio-ecr-push` | Push to `main` and manual runs | Looks up the commit's image, logs in to public ECR (same reason), pushes the image, reads its digest back. |
 | `deploy.yml` | `portfolio-apply` | Called by `build.yml` after every image push, or run by hand with a digest, after the owner approves the `prod` environment | Plans the prod root with the digest, checks that the plan only swaps the Lambda image, applies that exact plan, and checks `/health` (see the prod runbook, "Deploying"). |
 

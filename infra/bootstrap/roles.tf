@@ -36,7 +36,7 @@ locals {
 
 resource "aws_iam_role" "plan" {
   name                 = "${var.name_prefix}-plan"
-  description          = "Read-only `tofu plan` from pull requests of this repository."
+  description          = "Read-only `tofu plan` from pull requests, and authenticated pulls from public ECR on pull requests and the main branch of this repository."
   max_session_duration = 3600
   permissions_boundary = aws_iam_policy.boundary.arn
 
@@ -49,7 +49,11 @@ resource "aws_iam_role" "plan" {
       Condition = {
         StringEquals = {
           (local.oidc_aud_key) = "sts.amazonaws.com"
-          (local.oidc_sub_key) = "${local.github_sub_prefix}:pull_request"
+          (local.oidc_sub_key) = [
+            "${local.github_sub_prefix}:pull_request",
+            # CI on main also logs in to public ECR, or its image pulls are anonymous and get 429 (D49).
+            "${local.github_sub_prefix}:ref:refs/heads/main",
+          ]
         }
       }
     }]

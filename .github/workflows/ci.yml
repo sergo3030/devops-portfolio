@@ -58,6 +58,10 @@ jobs:
           bash scripts/test-check-site-link.sh
           bash scripts/test-verify-clean.sh
           bash scripts/test-teardown.sh
+          bash scripts/test-check-build-paths.sh
+
+      - name: The build paths match what goes into the image
+        run: bash scripts/check-build-paths.sh
 
   python:
     name: python (ruff, pytest)
@@ -197,12 +201,12 @@ jobs:
           persist-credentials: false
 
       # The adapter image comes from public.ecr.aws, which rate limits anonymous pulls per address
-      # and answers 429 to the shared runners. A pull request of this repository logs in with the
-      # read-only plan role instead (no stored credentials). If any of this fails, the pull is
-      # anonymous as before, so the build never depends on it.
+      # and answers 429 to the shared runners. A pull request of this repository, or a push to
+      # main, logs in with the read-only plan role instead (no stored credentials, D49). If any of
+      # this fails, the pull is anonymous as before, so the build never depends on it.
       - name: Assume the plan role (for authenticated pulls from public ECR)
         id: aws
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
@@ -274,7 +278,7 @@ jobs:
       # Same authenticated pull of the adapter image as the image job (see there, D40).
       - name: Assume the plan role (for authenticated pulls from public ECR)
         id: aws
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
