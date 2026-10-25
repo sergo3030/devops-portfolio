@@ -92,6 +92,11 @@ web-content:
 web-dev: web-content
     cd web && npm run dev
 
+# End-to-end test of the built site against a running API, in the Chrome installed here.
+# Start the API first, allowing the test site: CORS_ALLOW_ORIGINS=http://127.0.0.1:4173 just api-dev
+web-e2e: web-content
+    cd web && npm run e2e
+
 # All web checks, the same as CI
 web-check: web-content
     cd web && npm ci && npm run lint && npm run format && npm run typecheck && npm test && npm run build && npm run check:size && npm run check:page

@@ -1,0 +1,7 @@
+# Added to docker-compose.yml for the end-to-end test (task 17): the site under test is served by
+# `vite preview` on this origin, which the image does not allow (it bakes in the real site's
+# origin only). The override applies to this run alone; the image is unchanged.
+services:
+  api:
+    environment:
+      CORS_ALLOW_ORIGINS: http://127.0.0.1:4173

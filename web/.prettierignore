@@ -1,4 +1,6 @@
 dist
+dist-e2e
 node_modules
 src/generated
 package-lock.json
+test-results

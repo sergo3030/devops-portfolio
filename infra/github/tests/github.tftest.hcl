@@ -163,6 +163,7 @@ run "ruleset_requires_every_ci_job" {
       "review (new dependencies)",
       "image (hadolint, build, smoke)",
       "web (lint, test, build)",
+      "e2e (stack, site)",
     ])
     error_message = "required checks must match the CI job names exactly"
   }

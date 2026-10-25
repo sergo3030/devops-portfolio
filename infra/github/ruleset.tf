@@ -20,6 +20,7 @@ locals {
     "review (new dependencies)",
     "image (hadolint, build, smoke)",
     "web (lint, test, build)",
+    "e2e (stack, site)",
   ]
 }
 

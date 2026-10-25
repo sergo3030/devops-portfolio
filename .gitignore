@@ -50,4 +50,6 @@ app/content.public.json
 # Web app: dependencies, build output and the generated content snapshot and types
 web/node_modules/
 web/dist/
+web/dist-e2e/
+web/test-results/
 web/src/generated/
