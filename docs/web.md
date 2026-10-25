@@ -28,6 +28,15 @@ site shows "API offline: showing the saved copy", which is the intended fallback
 The two requests run one after the other, not together: the function allows two concurrent
 executions, and on a cold start two requests at once would use both for one visitor.
 
+## The About section (task 19b, D50)
+
+`About` renders `content.about` as the last section, with its own anchor (`#about`) and a link to it
+in the header. It renders nothing until at least one section is published. The field is optional
+everywhere on purpose: the site and the API deploy independently, so an API that is one version
+behind serves content without `about`. When live content has none, `keepAbout` keeps the saved
+copy's section, so the page does not lose it and does not call a harmless difference an outage. The
+end-to-end test covers this with an API that answers without `about`.
+
 ## End-to-end test (task 17, D45)
 
 `web/e2e/site.e2e.ts` drives the built site in a real Chrome (Playwright) against a running API.

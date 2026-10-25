@@ -75,6 +75,16 @@ export async function fetchLive(
 }
 
 /**
+ * The site and the API are deployed separately, so the API may not serve a field the saved copy
+ * has yet (the "About this project" section was added to both at different times). The saved
+ * copy's section stays, so the page neither loses it nor calls a harmless difference an outage.
+ */
+export function keepAbout(live: Content, snapshot: Content): Content {
+  if (live.about || !snapshot.about) return live;
+  return { ...live, about: snapshot.about };
+}
+
+/**
  * Shows the saved copy at once, then swaps in the API's content if it answers in time. With no
  * API configured nothing is fetched and no status is shown.
  */
@@ -93,7 +103,7 @@ export function useLiveContent(
     fetchLive(base, { signal: controller.signal })
       .then((live) => {
         setState({
-          content: live.content,
+          content: keepAbout(live.content, snapshot),
           source:
             live.version === undefined ? { kind: 'live' } : { kind: 'live', version: live.version },
         });

@@ -1,9 +1,9 @@
 import type { Content } from '../generated/content';
 import styles from './Header.module.css';
 
-type Props = Pick<Content, 'profile' | 'links'>;
+type Props = Pick<Content, 'profile' | 'links'> & { aboutTitle?: string };
 
-export function Header({ profile, links }: Props) {
+export function Header({ profile, links, aboutTitle }: Props) {
   const { name, title, country, summary } = profile;
   return (
     <header className={styles.header}>
@@ -25,6 +25,11 @@ export function Header({ profile, links }: Props) {
             ))}
           </ul>
         </nav>
+      ) : null}
+      {aboutTitle ? (
+        <p className={styles.more}>
+          <a href="#about">{aboutTitle}</a>
+        </p>
       ) : null}
     </header>
   );

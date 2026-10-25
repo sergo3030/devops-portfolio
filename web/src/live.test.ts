@@ -1,5 +1,5 @@
 import { sampleContent } from './fixtures';
-import { fetchLive, TIMEOUT_MS } from './live';
+import { fetchLive, keepAbout, TIMEOUT_MS } from './live';
 
 const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status }));
@@ -22,6 +22,27 @@ const hanging: typeof fetch = (_input, init) =>
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe('keepAbout', () => {
+  const about = { title: 'About', sections: [{ heading: 'Why', paragraphs: ['Because.'] }] };
+  const saved = { ...sampleContent, about };
+
+  it('keeps the saved about when the API has none yet', () => {
+    expect(keepAbout(sampleContent, saved).about).toEqual(about);
+  });
+
+  it("prefers the API's about when it has one", () => {
+    const live = {
+      ...sampleContent,
+      about: { sections: [{ heading: 'New', paragraphs: ['Text.'] }] },
+    };
+    expect(keepAbout(live, saved).about).toEqual(live.about);
+  });
+
+  it('adds nothing when neither has one', () => {
+    expect(keepAbout(sampleContent, sampleContent)).toBe(sampleContent);
+  });
 });
 
 describe('fetchLive', () => {

@@ -1,4 +1,5 @@
 import styles from './App.module.css';
+import { About, ABOUT_TITLE } from './components/About';
 import { CaseStudies } from './components/CaseStudies';
 import { DataStatus } from './components/DataStatus';
 import { Experience } from './components/Experience';
@@ -17,11 +18,18 @@ type Props = { content: Content; dataSource?: DataSource };
 export function App({ content, dataSource = { kind: 'none' } }: Props) {
   return (
     <main className={styles.page}>
-      <Header profile={content.profile} links={content.links} />
+      <Header
+        profile={content.profile}
+        links={content.links}
+        {...(content.about && content.about.sections.length > 0
+          ? { aboutTitle: content.about.title ?? ABOUT_TITLE }
+          : {})}
+      />
       <Experience jobs={content.experience} />
       <Skills groups={content.skills} />
       <CaseStudies studies={content.case_studies} />
       <Languages languages={content.languages} />
+      <About about={content.about} />
       <DataStatus source={dataSource} />
     </main>
   );

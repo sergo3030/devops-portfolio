@@ -225,6 +225,96 @@ def test_pending_employer_approval_is_never_published(tmp_path: Path) -> None:
     assert [s["id"] for s in public["case_studies"]] == ["gateway-migration"]
 
 
+def about_block() -> dict[str, Any]:
+    return {
+        "title": line("About this project"),
+        "sections": [
+            {
+                "heading": "Why",
+                "approved": True,
+                "paragraphs": [line("A reviewed paragraph."), line("A draft.", approved=False)],
+            },
+            {
+                "heading": "Draft section",
+                "approved": False,
+                "paragraphs": [line("Not reviewed yet.")],
+            },
+            {
+                "heading": "Only drafts inside",
+                "approved": True,
+                "paragraphs": [line("Still a draft.", approved=False)],
+            },
+        ],
+    }
+
+
+def test_about_is_published_with_approved_parts_only(tmp_path: Path) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    code, err, out = run(tmp_path, content, denylist=["Zorgon"], build=True)
+    assert code == 0, err
+    public = json.loads(out.read_text(encoding="utf-8"))
+    assert public["about"] == {
+        "title": "About this project",
+        "sections": [{"heading": "Why", "paragraphs": ["A reviewed paragraph."]}],
+    }
+    assert "approved" not in json.dumps(public)
+
+
+def test_an_unapproved_about_title_is_left_out(tmp_path: Path) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    content["about"]["title"] = line("About this project", approved=False)
+    code, err, out = run(tmp_path, content, denylist=["Zorgon"], build=True)
+    assert code == 0, err
+    assert "title" not in json.loads(out.read_text(encoding="utf-8"))["about"]
+
+
+def test_an_about_with_nothing_approved_is_not_published(tmp_path: Path) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    for section in content["about"]["sections"]:
+        section["approved"] = False
+    code, err, out = run(tmp_path, content, denylist=["Zorgon"], build=True)
+    assert code == 0, err
+    assert "about" not in json.loads(out.read_text(encoding="utf-8"))
+
+
+def test_content_without_an_about_still_builds(tmp_path: Path) -> None:
+    code, err, out = run(tmp_path, clean_content(), denylist=["Zorgon"], build=True)
+    assert code == 0, err
+    assert "about" not in json.loads(out.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(("rule", "text"), PLANTED, ids=[rule for rule, _ in PLANTED])
+def test_planted_leak_in_about_fails_even_in_a_draft(tmp_path: Path, rule: str, text: str) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    content["about"]["sections"][1]["paragraphs"][0] = line(text, approved=False)
+    code, err, _ = run(tmp_path, content, denylist=["Zorgon"])
+    assert code == 1
+    assert rule in err
+    assert "about.sections" in err
+
+
+def test_a_denylist_term_in_about_fails(tmp_path: Path) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    content["about"]["sections"][0]["paragraphs"][0] = line("Built at Zorgon last year.")
+    code, err, _ = run(tmp_path, content, denylist=["Zorgon"])
+    assert code == 1
+    assert "Zorgon" not in err
+
+
+def test_an_about_without_a_title_fails_the_schema(tmp_path: Path) -> None:
+    content = clean_content()
+    content["about"] = about_block()
+    del content["about"]["title"]
+    code, err, _ = run(tmp_path, content, denylist=["Zorgon"])
+    assert code == 1
+    assert "schema:" in err
+
+
 def test_repository_content_passes_the_generic_checks() -> None:
     """The committed content must pass everything except the private denylist (CI has none)."""
     code = check_content.main(

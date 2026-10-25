@@ -271,6 +271,94 @@ case_studies:
               major EFK upgrades (8.17, 9.5).
             approved: true
 
+# The project's own story, shown on the site as "About this project". Same rules as everything
+# else: every line is approved by the owner before it is published.
+about:
+  title: { text: "About this project", approved: true }
+  sections:
+    - heading: "Why it is over-engineered"
+      approved: true
+      paragraphs:
+        - text: >-
+            This site could be a single static page. I built it the long way on purpose, as a
+            working example of how I like to run software: as much as possible is code, every change
+            goes through automated checks, and nothing depends on a secret that could leak. The
+            portfolio is the excuse. The pipeline, the infrastructure and the safety rails are the
+            point.
+          approved: true
+    - heading: "What runs where"
+      approved: true
+      paragraphs:
+        - text: >-
+            The site is a static React page on GitHub Pages. It ships with a saved copy of its
+            content, so it works even when the API is down. The same content is served by a small
+            FastAPI service that runs as a container image on AWS Lambda behind a Function URL, with
+            no API Gateway. When the API answers, the page says so and shows the version that is
+            running. When it does not, the page says it is showing the saved copy.
+          approved: true
+    - heading: "How a change reaches production"
+      approved: true
+      paragraphs:
+        - text: >-
+            Every change is a pull request that must pass linting, tests, secret scanning, security
+            scans of the code, the infrastructure and the container image, and an end-to-end test in
+            a real browser. After the merge the image is built, scanned and pushed once, and a
+            deployment waits for my approval. The deploy applies a plan that a script has checked
+            changes nothing except the image, then confirms that the live API reports the version it
+            just deployed.
+          approved: true
+    - heading: "No stored keys"
+      approved: true
+      paragraphs:
+        - text: >-
+            Nothing in the repository or in GitHub holds a cloud key. Each pipeline run proves who
+            it is with a short-lived token from GitHub, and AWS trades it for credentials that last
+            about an hour. There are three narrow roles: one that can only read and plan, one that
+            can only push the image, and one that can only deploy, which is reachable only after my
+            approval. A permission boundary caps all of them to the few services this project uses,
+            in one region. The one value kept as a GitHub secret is the AWS account number, only so
+            that it stays out of public logs.
+          approved: true
+    - heading: "What it costs and how I keep it that way"
+      approved: true
+      paragraphs:
+        - text: >-
+            Normal running costs a few cents a month, mostly image storage. AWS has no hard spending
+            cap, so I layered guards instead: a monthly budget alert, a daily check for cost
+            anomalies, a limit of two requests running at once, an API that accepts only simple
+            reads, and an emergency brake that stops every request with one change. I tested the cap
+            with a burst of requests and the brake by applying it for real. Budget emails arrive
+            hours late, which is why the cap and the brake, not the email, are the real protection.
+          approved: true
+    - heading: "Taking it apart safely"
+      approved: true
+      paragraphs:
+        - text: >-
+            The deployment is meant to run only while it is useful, so removing it is a first-class
+            feature. One command pauses the API, another removes the AWS side, and a third brings
+            the API back. Each shows the full plan first and changes nothing until I confirm in a
+            terminal. A read-only check lists whatever is left in the account, and it never reports
+            clean when a call fails. I rehearsed a destroy and recreate by hand, and the scripts
+            around it are tested with fake tools.
+          approved: true
+    - heading: "What I learned and would do differently"
+      approved: true
+      paragraphs:
+        - text: >-
+            OpenTofu, AWS and React were new to me, so I leaned on checks to move quickly without
+            guessing: tests that run without an account, plans I read in full before every change,
+            and a written log of each decision with its reason. The checks caught real mistakes,
+            including a permission that was too narrow and a rate limit that broke builds until I
+            logged in to the registry.
+          approved: true
+        - text: >-
+            If I started again I would write the end-to-end browser test first. Several problems,
+            such as cross-origin rules and the page's security policy, only showed up in a real
+            browser, and unit tests with a fake network could not see them. I would also keep every
+            pinned tool in a manifest that updates itself from the start, and I would never put the
+            account number in a plain variable: GitHub masks only secrets in public logs.
+          approved: true
+
 languages:
   - { name: "Hebrew", approved: true }
   - { name: "English", approved: true }

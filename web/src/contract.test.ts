@@ -18,6 +18,28 @@ describe('the content contract', () => {
     expect(loadSnapshot().profile).toBeDefined();
   });
 
+  it('has the About section in the built-in snapshot, with text in every section', () => {
+    const about = loadSnapshot().about;
+    expect(about?.title).toBe('About this project');
+    expect(about?.sections.length ?? 0).toBeGreaterThan(0);
+    for (const section of about?.sections ?? []) {
+      expect(section.paragraphs.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('accepts content without an about, as an older API serves it', () => {
+    const older = structuredClone(snapshot);
+    Reflect.deleteProperty(older, 'about');
+    expect(validate(older), JSON.stringify(validate.errors)).toBe(true);
+    expect(isContent(older)).toBe(true);
+  });
+
+  it('rejects approval flags inside the about section, like the API models do', () => {
+    const flagged = structuredClone(snapshot) as { about: { sections: Record<string, unknown>[] } };
+    flagged.about.sections[0]!.approved = true;
+    expect(validate(flagged)).toBe(false);
+  });
+
   it('rejects unknown fields, like the API models do', () => {
     expect(validate({ ...snapshot, approved: true })).toBe(false);
   });

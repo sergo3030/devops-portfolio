@@ -50,6 +50,12 @@ class CaseStudy(_Model):
     sections: list[Section]
 
 
+class About(_Model):
+    # Absent from the published content unless at least one paragraph is approved.
+    title: str | None = None
+    sections: list[Section]
+
+
 class Content(_Model):
     version: int
     profile: Profile
@@ -57,4 +63,5 @@ class Content(_Model):
     skills: list[SkillGroup]
     experience: list[Experience]
     case_studies: list[CaseStudy]
+    about: About | None = None
     languages: list[str]

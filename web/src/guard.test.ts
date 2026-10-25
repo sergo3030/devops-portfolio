@@ -1,4 +1,4 @@
-import { emptyContent, sampleContent, withCaseStudy } from './fixtures';
+import { emptyContent, sampleContent, withAbout, withCaseStudy } from './fixtures';
 import type { Content } from './generated/content';
 import { isContent } from './guard';
 
@@ -21,6 +21,14 @@ const brokenWays: [string, (content: Content) => void][] = [
     (c) => void (c.case_studies[0]!.sections[0]!.paragraphs = bad('x')),
   ],
   ['a case study without an id', (c) => void Reflect.deleteProperty(c.case_studies[0]!, 'id')],
+  ['an about that is a list', (c) => void (c.about = bad([]))],
+  ['an about title that is not text', (c) => void (c.about!.title = bad(5))],
+  ['about sections that are not a list', (c) => void (c.about!.sections = bad('x'))],
+  [
+    'an about section without a heading',
+    (c) => void Reflect.deleteProperty(c.about!.sections[0]!, 'heading'),
+  ],
+  ['about paragraphs that are numbers', (c) => void (c.about!.sections[0]!.paragraphs = bad([1]))],
   ['languages that are numbers', (c) => void (c.languages = bad([1]))],
   ['languages that are text', (c) => void (c.languages = bad('English'))],
 ];
@@ -30,13 +38,16 @@ describe('isContent', () => {
     ['empty content', emptyContent],
     ['sample content', sampleContent],
     ['content with a case study', withCaseStudy],
+    ['content with an about section', withAbout],
+    ['content from an API that has no about yet', sampleContent],
+    ['content with a null about', { ...sampleContent, about: null }],
     ['null profile fields', { ...emptyContent, profile: { name: null, country: null } }],
   ])('accepts %s', (_label, value) => {
     expect(isContent(value)).toBe(true);
   });
 
   it.each(brokenWays)('rejects %s', (_label, breakIt) => {
-    const copy = structuredClone(withCaseStudy);
+    const copy = structuredClone({ ...withCaseStudy, about: withAbout.about });
     breakIt(copy);
     expect(isContent(copy)).toBe(false);
   });

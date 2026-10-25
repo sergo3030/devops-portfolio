@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import axe from 'axe-core';
 import { App } from './App';
 import { loadSnapshot } from './content';
-import { withCaseStudy } from './fixtures';
+import { withAbout, withCaseStudy } from './fixtures';
 
 async function violations(container: HTMLElement): Promise<string[]> {
   // Colour contrast needs a real browser; jsdom has no layout or computed colours.
@@ -18,6 +18,11 @@ describe('accessibility baseline', () => {
 
   it('has none with a case study published either', async () => {
     const { container } = render(<App content={withCaseStudy} />);
+    expect(await violations(container)).toEqual([]);
+  });
+
+  it('has none with the About section published', async () => {
+    const { container } = render(<App content={{ ...withCaseStudy, about: withAbout.about }} />);
     expect(await violations(container)).toEqual([]);
   });
 

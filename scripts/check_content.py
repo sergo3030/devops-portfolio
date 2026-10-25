@@ -188,6 +188,7 @@ def build_public(content: dict[str, Any]) -> dict[str, Any]:
                 ],
             }
         )
+    about = _build_about(content.get("about"))
     return {
         "version": content["version"],
         "profile": profile,
@@ -197,7 +198,30 @@ def build_public(content: dict[str, Any]) -> dict[str, Any]:
         ],
         "experience": experience,
         "case_studies": case_studies,
+        **({"about": about} if about else {}),
         "languages": [x["name"] for x in _approved(content["languages"])],
+    }
+
+
+def _build_about(about: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The published "About this project" section: approved sections and paragraphs only, and
+    nothing at all when no paragraph is approved (an empty section is never shown)."""
+    if not about:
+        return None
+    sections = [
+        {
+            "heading": section["heading"],
+            "paragraphs": [p["text"] for p in _approved(section["paragraphs"])],
+        }
+        for section in _approved(about["sections"])
+    ]
+    sections = [section for section in sections if section["paragraphs"]]
+    if not sections:
+        return None
+    title = about["title"]
+    return {
+        **({"title": title["text"]} if title.get("approved") is True else {}),
+        "sections": sections,
     }
 
 

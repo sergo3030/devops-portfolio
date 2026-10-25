@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { sampleContent } from './fixtures';
+import { sampleContent, withAbout } from './fixtures';
 import { Root } from './Root';
 
 const livePerson = { ...sampleContent, profile: { ...sampleContent.profile, name: 'Live Person' } };
@@ -39,6 +39,18 @@ describe('Root', () => {
       await screen.findByRole('heading', { level: 1, name: 'Live Person' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Live from API · version 1.2.3')).toBeInTheDocument();
+  });
+
+  it('keeps the About section when the API is older and does not serve it yet', async () => {
+    stubApi(ok(livePerson), ok({ status: 'ok', version: '1.2.3' }));
+    render(<Root snapshot={withAbout} apiBase="http://api.test" />);
+    expect(screen.getByRole('region', { name: 'About this project' })).toBeInTheDocument();
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Live Person' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Live from API · version 1.2.3')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'About this project' })).toBeInTheDocument();
   });
 
   it('keeps the saved copy and says the API is offline when it fails', async () => {
