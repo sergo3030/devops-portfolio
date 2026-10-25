@@ -18,12 +18,52 @@ app/portfolio_api/
   models.py    Pydantic models of the published content (unknown fields rejected)
   content.py   load_content, the ContentStore singleton and the get_content dependency
   routers.py   health_router and content_router
-  main.py      lifespan, the module-level `app`, and `uvicorn.run` under __main__
+  security.py  the security-headers and read-only middlewares
+  main.py      lifespan, the module-level `app`, the middlewares and `uvicorn.run` under __main__
 ```
 
 `app` is a plain module-level object. Routers live in their own module and are attached with
 `include_router`, and the content is held by a module-level store that the lifespan fills and
 clears. The route reads it through the `get_content` dependency, which tests can override.
+
+## Hardening (task 16, D43)
+
+The API is public and has no authentication, so it is built to do as little as possible.
+
+**Read-only** (`ReadOnlyMiddleware`, checked before anything else sees a request):
+
+| Request | Answer |
+|---|---|
+| a method other than `GET` and `OPTIONS` | `405`, with `Allow: GET, OPTIONS` |
+| a body (a `Content-Length` other than 0, or `Transfer-Encoding`) | `413` |
+| headers larger than 16 KB in total | `431` |
+| a URL (path and query) longer than 2048 bytes | `414` |
+
+uvicorn runs without the `server:` banner. Its own header limit (16 KB) only catches a request
+that arrives in pieces, which is why the middleware checks sizes too (found when the smoke checks
+were run against the real server: a 20 KB header was accepted by uvicorn alone).
+
+**Security headers** (`SecurityHeadersMiddleware`) on every response, errors and CORS answers
+included: `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none';
+frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`,
+`Strict-Transport-Security: max-age=31536000`. A response without its own `Cache-Control` gets
+`no-store`; only `/content` is cacheable (`public, max-age=300`).
+
+**CORS** lets one website read the API in a browser. `CORS_ALLOW_ORIGINS` is a comma-separated
+list of origins (scheme, host and optional port, lower case, no path and no wildcard; plain
+`http` only for `localhost` and `127.0.0.1`). An invalid value stops the start-up. The image sets
+`https://sergo3030.github.io`. Methods are `GET` and `OPTIONS`, the only extra request headers are
+`Accept` and `Cache-Control`, credentials are never allowed, and a preflight is cached for 10
+minutes. Without the variable (local development) there are no CORS headers at all.
+
+**CORS is not access control.** It only stops other websites' scripts from reading the API in a
+visitor's browser. Anyone can still call the URL with `curl`. What bounds abuse is the concurrency
+cap of 2 on the function, the rule that a request can carry nothing, and the budget alert.
+
+**No secrets in the image.** `.dockerignore` is an allowlist, the smoke test checks that the image
+sets no secret-looking variable, has none of the usual secret files and that `/app` holds only the
+app and its content, and Trivy scans the image for secrets before it is pushed (D39). A test pins
+the `.dockerignore` as an allowlist.
 
 ## Version
 
@@ -75,6 +115,8 @@ keeps them current.
 |---|---|
 | `APP_VERSION` | The running version. CI uses `0.0.0-dev`, the release workflow (task 15a) uses the tag |
 | `GIT_SHA` | The commit the image was built from |
+
+The image also sets `CORS_ALLOW_ORIGINS=https://sergo3030.github.io` (see Hardening).
 
 Both become environment variables and OCI labels, and `/health` reports them. The adapter is set
 up with readiness path `/health`, healthy status `200` and an 8 second readiness timeout, so a
