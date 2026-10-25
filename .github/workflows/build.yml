@@ -8,8 +8,14 @@ on:
   push:
     branches: [main]
     paths:
-      - "app/**"
-      - "content/**"
+      - "app/Dockerfile"
+      - "app/pyproject.toml"
+      - "app/uv.lock"
+      - "app/portfolio_api/**"
+      - ".dockerignore"
+      - "content/content.yaml"
+      - "content/allowed-numbers.txt"
+      - "content/schema/content.schema.json"
       - "scripts/check_content.py"
       - "scripts/ecr-image.sh"
       - "scripts/ecr-public-login.sh"
