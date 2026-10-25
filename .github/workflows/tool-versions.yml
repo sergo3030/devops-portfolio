@@ -1,0 +1,38 @@
+name: tool-versions
+
+# A weekly look at the tools that Dependabot cannot update: uv, OpenTofu, gitleaks, hadolint and
+# Trivy are pinned (the last three by checksum too) in workflows and scripts. The run fails when a
+# pinned version is behind a release that is at least 14 days old, so GitHub emails the person who
+# last edited the schedule. It uses no credentials beyond the read-only workflow token and changes
+# nothing. How to bump a tool: docs/stability.md.
+#
+# GitHub pauses scheduled workflows in a repository with no activity for 60 days: run it by hand
+# after a quiet spell.
+
+on:
+  schedule:
+    - cron: "11 7 * * 1" # Mondays, away from the busy minutes on the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tool-versions
+  cancel-in-progress: false
+
+jobs:
+  versions:
+    name: tool versions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compare the pinned versions with the latest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/tool-versions.sh

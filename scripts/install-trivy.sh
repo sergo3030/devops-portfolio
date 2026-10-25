@@ -2,7 +2,8 @@
 # Installs the Trivy image scanner, pinned by version and by the SHA-256 of the release archive.
 # No action is used: an unpinned or tampered download fails the checksum and installs nothing.
 # Dependabot does not track this version (see docs/decisions.md D39), so update both values
-# together, and check the new archive against the release's trivy_<version>_checksums.txt.
+# together, and check the new archive against the release's trivy_<version>_checksums.txt. A weekly
+# workflow (tool-versions.yml) reports when a newer release is at least 14 days old.
 #
 #   install-trivy.sh            installs into $RUNNER_TEMP/trivy-bin and adds it to $GITHUB_PATH
 #

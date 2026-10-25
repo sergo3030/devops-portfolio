@@ -15,9 +15,9 @@ check:
 
 # Lint GitHub Actions workflows (same checks as CI)
 lint-workflows:
-    uvx --from actionlint-py==1.7.12.25 actionlint
-    uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
-    uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
+    uv run --project tools --locked actionlint
+    uv run --project tools --locked zizmor --offline --config .github/zizmor.yml .
+    uv run --project tools --locked check-jsonschema --builtin-schema vendor.dependabot .github/dependabot.yml
     ! grep -rnE 'vars\.AWS_ACCOUNT_ID|arn:aws:[a-z0-9-]*::[0-9]{12}' --exclude=ci.yml .github/workflows
 
 # Test the image push, retry and scan scripts against fake commands (same as CI)
@@ -30,6 +30,16 @@ test-scripts:
     bash scripts/test-teardown.sh
     bash scripts/test-check-build-paths.sh
     bash scripts/check-build-paths.sh
+    bash scripts/test-tool-pins.sh
+    bash scripts/check-tool-pins.sh
+
+# How many runs of the ci workflow on main in a row were green (the goal in task 20 is ten)
+ci-streak:
+    python scripts/ci_streak.py
+
+# Are the tools that Dependabot cannot update behind their latest release? (needs `gh` logged in)
+tool-versions:
+    bash scripts/tool-versions.sh
 
 # Relative links and heading anchors in README and docs/ (also run by the Python tests in CI)
 docs-check:
@@ -37,7 +47,7 @@ docs-check:
 
 # shellcheck for the scripts (same as CI)
 lint-scripts:
-    uvx --from shellcheck-py==0.10.0.1 shellcheck -x -S warning scripts/*.sh
+    uv run --project tools --locked shellcheck -x -S warning scripts/*.sh
 
 # Level 1 (pause the API). Previews by default; `just teardown-api apply` really does it, in a terminal
 teardown-api mode="preview":
@@ -57,7 +67,7 @@ verify-clean level="level2":
 
 # Scan IaC, workflows and Dockerfiles (same check as CI)
 iac-scan:
-    PYTHONUTF8=1 uvx --from checkov==3.3.26 checkov --config-file .checkov.yaml
+    PYTHONUTF8=1 uv run --project tools --locked python -m checkov.main --config-file .checkov.yaml
 
 # Scan the whole git history for secrets (same check as CI)
 secrets-history:
