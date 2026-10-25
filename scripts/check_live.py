@@ -195,9 +195,11 @@ def check_api(origin: str, site: str, report: Report) -> None:
         )
         leaked = sorted(keys_anywhere(body) & APPROVAL_KEYS)
         report.expect(
-            not leaked,
+            content.status == 200 and not leaked,
             "/content approval state",
-            f"leaked {leaked}" if leaked else "none in the answer",
+            f"leaked {leaked}"
+            if leaked
+            else ("none in the answer" if content.status == 200 else "no content to look at"),
         )
         report.expect(
             content.headers.get("cache-control", "").startswith("public, max-age=300"),
@@ -217,9 +219,15 @@ def check_api(origin: str, site: str, report: Report) -> None:
     else:
         leak = stranger.headers.get("access-control-allow-origin")
         report.expect(
-            leak is None,
+            stranger.status == 200 and leak is None,
             "CORS for another website",
-            f"allowed {leak!r}" if leak else "no CORS headers, as intended",
+            f"allowed {leak!r}"
+            if leak
+            else (
+                "no CORS headers, as intended"
+                if stranger.status == 200
+                else f"the API answered {stranger.status}, so nothing can be said"
+            ),
         )
 
     write = call(f"{origin}/content", method="POST", headers={"Origin": site})

@@ -84,6 +84,12 @@ variable "budget_limit_usd" {
   default     = 1
 }
 
+variable "budget_alert_test" {
+  description = "Creates a second Budget of 0.01 USD that alerts on any actual spend, to prove that an alert reaches the email address. Turn on, wait for the email (AWS evaluates Budgets a few times a day), turn off. See docs/runbook-prod.md, Cost guards."
+  type        = bool
+  default     = false
+}
+
 variable "budget_alert_email" {
   description = "Email for Budget and Cost Anomaly alerts. Pass with TF_VAR_budget_alert_email. Never commit it."
   type        = string
