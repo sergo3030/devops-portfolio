@@ -183,7 +183,68 @@ rm infra/prod/tfplan infra/prod/tfplan-destroy
 ```
 
 The repository holds images, so step 1 has to be applied before the destroy can delete it.
-`just teardown-api` wraps this in task 18a.
+`just teardown-api` wraps exactly this (task 18a, D48); the commands above are what it runs.
+
+## Teardown: three levels (task 18a, D48)
+
+The deployment is meant to run only while the demo is needed. Each level is a command that
+**previews by default** (full plans, nothing applied) and does the work only with `apply`, in your
+own terminal, after you confirm.
+
+| Level | When | Command | Removes | Keeps |
+|---|---|---|---|---|
+| 1. Pause the API | The API is not needed, or at any cost scare | `just teardown-api` (preview), `just teardown-api apply` | Lambda, Function URL, the public statements, ECR repository and images, log group, the function's role | Bootstrap root, GitHub settings, the site (says "API offline") |
+| 2. Remove AWS | The demo is over | `just teardown-aws` (preview), `just teardown-aws apply` | Level 1, then state bucket, OIDC provider, roles, boundary, Budgets, anomaly monitor | The repository and the site |
+| 3. Retire the project | You are done | The checklist below | The site | An archived repository, or nothing |
+
+Recreate after Level 1 with `just up-prod` (also previews by default).
+
+**Level 1** (`teardown-api.sh`). Preview prints the `force_delete_images` plan and the destroy plan.
+`apply` needs a terminal and a signed-in `portfolio-admin` session; it applies step 1, plans the
+destroy again (a plan saved before step 1 would be stale), shows it, and destroys only after you type
+`destroy prod`. Then it disables the daily `synthetic` workflow (it would fail every day with the
+API gone) and runs `just verify-clean level1`. The site keeps working with the saved copy. While the
+repository is gone, merges that change the image fail at the push step; that is expected.
+
+**Level 2** (`teardown-aws.sh`). It first requires `verify-clean level1` to pass, and
+`TF_VAR_budget_alert_email` to be set. The preview prints the bootstrap `plan -destroy` (with
+`force_destroy` on, so the state bucket can be emptied). `apply` moves the state back to a local file
+(the bucket that holds it is about to be destroyed), applies `force_destroy`, shows the destroy plan,
+destroys after you type `destroy bootstrap`, and runs `verify-clean level2`. **Only the preview has
+been run for real**; the apply path is tested with fake tools and rehearsed in task 20a. If it stops
+after the state move, the state is in `infra/bootstrap/terraform.tfstate`: keep it. If the account had
+a GitHub OIDC provider before this project, set `create_oidc_provider=false` first (it is
+account-wide). Afterwards: `aws logout`, delete the `portfolio-admin` user only if you are leaving the
+project, delete the local state files (they hold the alert email), and check the bill and Cost
+Explorer the next day.
+
+**`just verify-clean [level1|level2]`** is read-only. It lists what exists by the `portfolio-` prefix
+(Lambda functions, ECR repositories, DynamoDB tables, S3 buckets, log groups, IAM roles and policies,
+the OIDC provider, Budgets) and does a `Project=portfolio` tag search (which does not list IAM roles,
+hence the name lists). `level1` allows only what the bootstrap root owns, `level2` allows nothing.
+Anything else is printed and the exit status is 1; a failing AWS call fails the check instead of
+reporting clean. Region us-east-1 only (the permission boundary denies the others). Cost Anomaly
+Detection is covered only through the tag search.
+
+**Recreate** (`up-prod.sh`): phase 1, then `build.yml` started by the script, the new digest read from
+ECR, phase 2 after you confirm, and the `/health` check. The deploy job that the build starts waits for
+approval and can only fail on a repository with no function: **reject it**. The URL is new: change
+`web/.env.production` in a pull request, merge it, then `gh workflow enable synthetic.yml` and run it.
+
+**Level 3 checklist** (by hand, in this order):
+
+1. Level 2 done and `verify-clean level2` clean.
+2. Disable the scheduled workflows (`synthetic`, and any drift workflow) so they do not fail forever.
+3. Delete the Actions secret `AWS_ACCOUNT_ID` and the `prod` environment. Their absence is the proof
+   that no AWS access remains.
+4. Add a README banner: "Deployment torn down on <date>. Recreate with `just up-prod`" (Level 1) or
+   say the AWS side was removed (Level 2).
+5. The site can stay as a static version, or take Pages down (`infra/github`).
+6. Archive the repository on GitHub if you want it to be read-only.
+7. No domain was bought. If one is added later: turn off auto-renew and remove the DNS records.
+8. Delete the local AWS profile and the cached login (`aws logout --all`), and the
+   `portfolio-admin` user.
+9. Look at the bill and Cost Explorer the next day, and again a month later.
 
 ## Destroy and recreate, rehearsed (2026-10-22)
 

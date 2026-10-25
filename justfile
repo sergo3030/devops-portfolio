@@ -26,6 +26,28 @@ test-scripts:
     bash scripts/test-retry-and-trivy.sh
     bash scripts/test-check-release.sh
     bash scripts/test-check-site-link.sh
+    bash scripts/test-verify-clean.sh
+    bash scripts/test-teardown.sh
+
+# shellcheck for the scripts (same as CI)
+lint-scripts:
+    uvx --from shellcheck-py==0.10.0.1 shellcheck -x -S warning scripts/*.sh
+
+# Level 1 (pause the API). Previews by default; `just teardown-api apply` really does it, in a terminal
+teardown-api mode="preview":
+    bash scripts/teardown-api.sh {{mode}}
+
+# Level 2 (remove AWS, after Level 1). Previews by default
+teardown-aws mode="preview":
+    bash scripts/teardown-aws.sh {{mode}}
+
+# Recreate production after Level 1. Previews by default
+up-prod mode="preview":
+    bash scripts/up-prod.sh {{mode}}
+
+# Read-only: what is left in the AWS account (level1 = only the bootstrap root, level2 = nothing)
+verify-clean level="level2":
+    bash scripts/verify-clean.sh {{level}}
 
 # Scan IaC, workflows and Dockerfiles (same check as CI)
 iac-scan:

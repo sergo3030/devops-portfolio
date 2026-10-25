@@ -76,7 +76,9 @@ fails with `AccessDenied`, a read action is missing from the plan role: add it t
 
 ## Teardown (Level 2, last step)
 
-Only after the `prod` root is destroyed and `just verify-clean` is clean.
+Use `just teardown-aws` (see "Teardown: three levels" in `docs/runbook-prod.md`). It previews by
+default, and `apply` runs the steps below after confirmations. Only after the `prod` root is
+destroyed and `just verify-clean level1` is clean.
 
 1. Move the state back to local: remove `backend.tf`, then `tofu init -migrate-state -force-copy`.
 2. Re-apply once with `-var force_destroy=true` so the bucket can be emptied on destroy.
