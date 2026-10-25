@@ -16,20 +16,24 @@ running version when the API answers, and the content saved at build time when i
 
 ## What runs where
 
+What a visitor touches:
+
 ```mermaid
 flowchart LR
-  V([Visitor]) --> S["Static site<br/>React, Vite, TypeScript<br/>GitHub Pages"]
-  S -. "saved copy built in,<br/>used if the API is down" .- C[(content snapshot)]
-  S -- "fetch, CORS for the site only" --> U["Function URL<br/>no API Gateway"]
-  U --> L["AWS Lambda<br/>FastAPI in a container image"]
-  subgraph delivery ["Delivery (GitHub Actions)"]
-    direction LR
-    G["pull request:<br/>lint, tests, scans, plan"] --> M["merge to main:<br/>build, scan, push by digest"]
-    M --> A{{"owner approval<br/>(prod environment)"}}
-    A --> D["deploy: apply the<br/>checked plan, verify /health"]
-  end
-  D -- "OIDC, no stored keys" --> R[("ECR image<br/>S3 state<br/>IAM roles")]
-  R --> L
+  V([Visitor]) --> S["Static site<br/>GitHub Pages"]
+  S -- "fetch<br/>(CORS: this site only)" --> L["AWS Lambda<br/>FastAPI container<br/>behind a Function URL"]
+  S -.- C[("Saved copy<br/>built into the site")]
+```
+
+The site works without the API: it renders the saved copy first and swaps in live data if the API
+answers in time. How a change reaches production:
+
+```mermaid
+flowchart TB
+  P["Pull request<br/>lint, tests, scans, plan"] --> M["Merge to main<br/>build, scan, push image by digest"]
+  M --> A{{"Owner approval<br/>(prod environment)"}}
+  A --> D["Deploy<br/>apply the checked plan, verify /health"]
+  D -- "OIDC, no stored keys" --> W[("AWS<br/>ECR, Lambda")]
 ```
 
 | Part | What | Where |
