@@ -31,6 +31,10 @@ test-scripts:
     bash scripts/test-check-build-paths.sh
     bash scripts/check-build-paths.sh
 
+# Relative links and heading anchors in README and docs/ (also run by the Python tests in CI)
+docs-check:
+    python scripts/check_doc_links.py
+
 # shellcheck for the scripts (same as CI)
 lint-scripts:
     uvx --from shellcheck-py==0.10.0.1 shellcheck -x -S warning scripts/*.sh
