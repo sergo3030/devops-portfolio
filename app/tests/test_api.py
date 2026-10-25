@@ -242,6 +242,43 @@ def test_models_reject_unknown_fields() -> None:
         Content.model_validate(leaky)
 
 
+def test_the_about_section_is_served_and_its_flags_are_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    about = {"title": "About", "sections": [{"heading": "Why", "paragraphs": ["Because."]}]}
+    with_about = {**sample_content(), "about": about}
+    Content.model_validate(with_about)
+    monkeypatch.setenv("CONTENT_FILE", str(write(tmp_path, with_about)))
+    with TestClient(app) as live:
+        assert live.get("/content").json()["about"] == about
+    flagged = {
+        **sample_content(),
+        "about": {**about, "sections": [{**about["sections"][0], "approved": True}]},
+    }
+    with pytest.raises(ValidationError):
+        Content.model_validate(flagged)
+
+
+def test_a_content_without_an_about_is_still_valid() -> None:
+    """The site and the API deploy separately, so an older build has no about section."""
+    assert Content.model_validate(sample_content()).about is None
+
+
+def test_the_published_about_is_only_what_the_owner_approved() -> None:
+    source = yaml.safe_load(CONTENT_YAML.read_text(encoding="utf-8"))
+    approved = {
+        paragraph["text"]
+        for section in source["about"]["sections"]
+        if section["approved"] is True
+        for paragraph in section["paragraphs"]
+        if paragraph["approved"] is True
+    }
+    about = published_content()["about"]
+    published = {paragraph for section in about["sections"] for paragraph in section["paragraphs"]}
+    assert published == approved
+    assert about["title"] == source["about"]["title"]["text"]
+
+
 def test_the_real_content_build_matches_the_models() -> None:
     """Contract: what the build publishes is exactly what the API can serve."""
     Content.model_validate(published_content())

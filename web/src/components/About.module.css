@@ -1,0 +1,4 @@
+.heading {
+  margin-block: var(--space-3) var(--space-1);
+  font-size: var(--text-md);
+}

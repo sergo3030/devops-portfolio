@@ -15,6 +15,17 @@ function isListOf(value: unknown, check: (item: Record<string, unknown>) => bool
   return Array.isArray(value) && value.every((item) => isRecord(item) && check(item));
 }
 
+/** The optional "About this project" section: absent, or a title and sections of text. */
+const isOptionalAbout = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  (isRecord(value) &&
+    isOptionalString(value.title) &&
+    isListOf(
+      value.sections,
+      (section) => isString(section.heading) && isStrings(section.paragraphs),
+    ));
+
 /** Only web links. A `javascript:` URL in a link would run code when it is clicked. */
 function isWebUrl(value: unknown): boolean {
   if (!isString(value)) return false;
@@ -62,6 +73,7 @@ export function isContent(value: unknown): value is Content {
           (section) => isString(section.heading) && isStrings(section.paragraphs),
         ),
     ) &&
+    isOptionalAbout(value.about) &&
     isStrings(value.languages)
   );
 }

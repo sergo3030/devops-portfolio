@@ -20,6 +20,17 @@ Every line is an object `{text, approved}`. I draft in small batches in chat, th
 reads the exact wording, and only then is `approved` set to `true`. The published build
 (`scripts/check_content.py --build`) contains approved lines only.
 
+## The "About this project" section
+
+`about` in `content.yaml` is the project's own story, shown on the site as the last section
+(with a link in the header). It is public text like the rest, so the same rules apply: every
+section and paragraph carries `approved`, the owner reads the exact wording before it is set to
+`true`, and the published build contains approved parts only. A title that is not approved is left
+out (the site falls back to "About this project"), and an `about` with no approved paragraph is not
+published at all. The text avoids digits (numbers are written as words), so it needs no new entry
+in `allowed-numbers.txt`. The field is optional in the published content, because the site and the
+API are deployed separately (D50).
+
 ## Checks
 
 | Check | Where it runs | What it catches |

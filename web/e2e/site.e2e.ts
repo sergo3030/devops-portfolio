@@ -28,8 +28,33 @@ test('shows the content and version the running API serves', async ({ page, requ
 
   await expect(dataStatus(page)).toHaveText(`Live from API · version ${health.version}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(content.profile.name);
+  // The About section is part of the saved copy and of the live content, and its header link works.
+  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toBeVisible();
+  await page.getByRole('link', { name: 'About this project' }).click();
+  await expect(page).toHaveURL(/#about$/);
   // Same-origin policy, CSP and CORS all had to agree for the answer to arrive without errors.
   expect(problems).toEqual([]);
+});
+
+test('keeps the About section when the running API is older and does not serve it yet', async ({
+  page,
+  request,
+}) => {
+  const content = (await (await request.get(`${API_URL}/content`)).json()) as Record<
+    string,
+    unknown
+  >;
+  delete content.about;
+  await page.route(`${API_URL}/content`, (route) =>
+    route.fulfill({
+      json: content,
+      headers: { 'access-control-allow-origin': 'http://127.0.0.1:4173' },
+    }),
+  );
+  await page.goto(SITE);
+
+  await expect(dataStatus(page)).toContainText('Live from API');
+  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toBeVisible();
 });
 
 test('asks for /content before /health, one at a time', async ({ page }) => {

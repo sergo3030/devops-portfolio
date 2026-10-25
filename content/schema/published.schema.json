@@ -1,5 +1,34 @@
 {
   "$defs": {
+    "About": {
+      "additionalProperties": false,
+      "properties": {
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "title": "Sections",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "sections"
+      ],
+      "title": "About",
+      "type": "object"
+    },
     "CaseStudy": {
       "additionalProperties": false,
       "properties": {
@@ -190,6 +219,17 @@
   },
   "additionalProperties": false,
   "properties": {
+    "about": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/About"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "case_studies": {
       "items": {
         "$ref": "#/$defs/CaseStudy"

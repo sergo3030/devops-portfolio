@@ -32,6 +32,17 @@ export const emptyContent: Content = {
   languages: [],
 };
 
+export const withAbout: Content = {
+  ...sampleContent,
+  about: {
+    title: 'About this project',
+    sections: [
+      { heading: 'Why', paragraphs: ['Because it is a good example.'] },
+      { heading: 'How', paragraphs: ['In small steps.', 'With checks.'] },
+    ],
+  },
+};
+
 export const withCaseStudy: Content = {
   ...sampleContent,
   case_studies: [

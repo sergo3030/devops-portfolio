@@ -82,18 +82,18 @@
           "summary": { "$ref": "#/$defs/paragraph" },
           "sections": {
             "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["heading", "approved", "paragraphs"],
-              "properties": {
-                "heading": { "type": "string", "minLength": 1, "maxLength": 80 },
-                "approved": { "type": "boolean" },
-                "paragraphs": { "type": "array", "items": { "$ref": "#/$defs/paragraph" } }
-              }
-            }
+            "items": { "$ref": "#/$defs/section" }
           }
         }
+      }
+    },
+    "about": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "sections"],
+      "properties": {
+        "title": { "$ref": "#/$defs/line" },
+        "sections": { "type": "array", "items": { "$ref": "#/$defs/section" } }
       }
     },
     "languages": {
@@ -117,6 +117,16 @@
       "properties": {
         "text": { "type": "string", "minLength": 1, "maxLength": 120 },
         "approved": { "type": "boolean" }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heading", "approved", "paragraphs"],
+      "properties": {
+        "heading": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "approved": { "type": "boolean" },
+        "paragraphs": { "type": "array", "items": { "$ref": "#/$defs/paragraph" } }
       }
     },
     "paragraph": {
