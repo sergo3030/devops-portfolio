@@ -29,7 +29,7 @@ resource "aws_lambda_function" "api" {
 }
 
 resource "aws_lambda_function_url" "api" {
-  #checkov:skip=CKV_AWS_258:Public by design: the API serves published, public content to a static site. Abuse is bounded by the cost guards (decisions.md) and the URL is kept out of the site until the API is hardened (task 16).
+  #checkov:skip=CKV_AWS_258:Public by design: the API serves published, public content to a static site. Abuse is bounded by the cost guards (decisions.md) and the API is read-only and hardened (task 16, D43).
   count = local.deploy ? 1 : 0
 
   function_name      = aws_lambda_function.api[0].function_name

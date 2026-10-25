@@ -14,7 +14,7 @@ output "lambda_role_arn" {
 }
 
 output "function_url" {
-  description = "Public HTTPS address of the API. Null until an image digest is deployed. Keep it out of the site until task 16."
+  description = "Public HTTPS address of the API. Null until an image digest is deployed. The site calls it: keep web/.env.production in step (docs/runbook-prod.md)."
   value       = local.deploy ? aws_lambda_function_url.api[0].function_url : null
 }
 

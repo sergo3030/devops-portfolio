@@ -6,18 +6,27 @@ time, and the page swaps in live data from the API when it answers (see "Live da
 
 ## Live data (D32)
 
-`Root` renders the saved copy at once, then `useLiveContent` fetches `/content` and `/health`
-with a 5 s deadline. The line at the bottom of the page says what happened:
+`Root` renders the saved copy at once, then `useLiveContent` fetches `/content`, then `/health`,
+with one 8 s deadline (D44). The line at the bottom of the page says what happened:
 
 | State | When | Line |
 |---|---|---|
-| none | no API configured (production build without `VITE_API_URL`), or the request is still running | nothing |
+| none | no API configured (build without `VITE_API_URL`), or the request is still running | nothing |
 | live | `/content` answered and passed the guard | "Live from API · version X" (no version if `/health` failed) |
 | offline | network error, non-200, too slow, not JSON, or failed the guard | "API offline: showing the saved copy" |
 
-In development the API address is `/api` (proxied to `just api-dev`). A production build uses
-`VITE_API_URL`, which must be an absolute origin (see `web/.env.example`). The API needs CORS for
-the site's origin before a deployed site can call it (task 16).
+In development the API address is `/api` (proxied to `just api-dev`). A production build reads
+`VITE_API_URL` from the committed file `web/.env.production`: an absolute origin, no trailing slash.
+The address is public by design (it is in the page's JavaScript and in its Content-Security-Policy),
+and the API allows the site's origin through CORS (D43). The build writes the same origin into
+`connect-src`, and `npm run check:page` fails if the bundle or the policy does not match the file.
+
+The function URL changes whenever the function is destroyed and created again (a teardown and
+recreate, `docs/runbook-prod.md`). Until `web/.env.production` is updated in a pull request the
+site shows "API offline: showing the saved copy", which is the intended fallback and not an outage.
+
+The two requests run one after the other, not together: the function allows two concurrent
+executions, and on a cold start two requests at once would use both for one visitor.
 
 ## Commands
 
@@ -25,7 +34,7 @@ the site's origin before a deployed site can call it (task 16).
 |---|---|
 | `just web-content` | Builds the snapshot the site embeds (`web/src/generated/content.json`, approved lines only) |
 | `just web-dev` | Starts the dev server. Run `just api-dev` too for live data. `/api` is proxied to the API, so no CORS is needed |
-| `just web-check` | Everything CI runs: install from the lock file, ESLint, Prettier, TypeScript, tests, build, bundle budget |
+| `just web-check` | Everything CI runs: install from the lock file, ESLint, Prettier, TypeScript, tests, build, bundle budget, built-page wiring check |
 | `just schema-export` | Regenerates `content/schema/published.schema.json` from the API models |
 
 ## The contract with the API
@@ -83,9 +92,8 @@ branches).
 The private content denylist cannot run in CI. Before a merge that changes `content/`, run
 `just content-check` on the laptop: the merge publishes the result.
 
-`VITE_API_URL` is not set for this build, so the deployed site shows the saved copy and no status
-line. Task 14 creates the API and task 16 adds CORS for the site origin; setting the variable then
-turns the live data on.
+The build reads `VITE_API_URL` from `web/.env.production` (task 16b), so the deployed site shows
+"Live from API" with the running version. `npm run check:page` runs after the build.
 
 ## Dependencies
 

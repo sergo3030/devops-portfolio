@@ -1,5 +1,5 @@
 import { sampleContent } from './fixtures';
-import { fetchLive } from './live';
+import { fetchLive, TIMEOUT_MS } from './live';
 
 const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status }));
@@ -66,6 +66,66 @@ describe('fetchLive', () => {
     ).rejects.toThrow();
     await vi.advanceTimersByTimeAsync(5000);
     await result;
+  });
+
+  it('waits long enough for a cold start of 5 s, and gives up at 8 s', async () => {
+    expect(TIMEOUT_MS).toBe(8000);
+    vi.useFakeTimers();
+    const slow: typeof fetch = (input, init) =>
+      new Promise((resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('aborted', 'AbortError'));
+        });
+        const delay = String(input).endsWith('/content') ? 5000 : 100;
+        setTimeout(() => {
+          resolve(
+            String(input).endsWith('/content')
+              ? new Response(JSON.stringify(sampleContent))
+              : new Response(JSON.stringify({ status: 'ok', version: '1.2.3' })),
+          );
+        }, delay);
+      });
+    const result = fetchLive('http://api.test', { fetchImpl: slow });
+    await vi.advanceTimersByTimeAsync(5100);
+    await expect(result).resolves.toEqual({ content: sampleContent, version: '1.2.3' });
+
+    const never = expect(fetchLive('http://api.test', { fetchImpl: hanging })).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(7999);
+    await vi.advanceTimersByTimeAsync(1);
+    await never;
+  });
+
+  it('asks for /health only after /content has answered', async () => {
+    const order: string[] = [];
+    let releaseContent: () => void = () => undefined;
+    const fetchImpl: typeof fetch = (input) => {
+      const path = new URL(String(input), 'http://api.test').pathname;
+      order.push(`start ${path}`);
+      if (path === '/content') {
+        return new Promise((resolve) => {
+          releaseContent = () => {
+            order.push('end /content');
+            resolve(new Response(JSON.stringify(sampleContent)));
+          };
+        });
+      }
+      return json({ status: 'ok', version: '1.2.3' });
+    };
+    const result = fetchLive('http://api.test', { fetchImpl });
+    await Promise.resolve();
+    expect(order).toEqual(['start /content']);
+    releaseContent();
+    await result;
+    expect(order).toEqual(['start /content', 'end /content', 'start /health']);
+  });
+
+  it('keeps the content when the deadline passes while /health is still running', async () => {
+    vi.useFakeTimers();
+    const fetchImpl: typeof fetch = (input, init) =>
+      String(input).endsWith('/content') ? json(sampleContent) : hanging(input, init);
+    const result = fetchLive('http://api.test', { fetchImpl, timeoutMs: 1000 });
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(result).resolves.toEqual({ content: sampleContent });
   });
 
   it('stops when the caller aborts, for example when the page is closed', async () => {

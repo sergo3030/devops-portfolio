@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+# The production build reads the API address from this file. It is public by design (docs/web.md).
+!web/.env.production
 *.pem
 *.key
 terraform.tfvars

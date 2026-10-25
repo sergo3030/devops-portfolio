@@ -297,6 +297,9 @@ jobs:
       - name: Bundle size budget
         run: npm run check:size
 
+      - name: The built page is wired to the API and its policy allows it
+        run: npm run check:page
+
       - name: Audit production dependencies
         run: npm audit --omit=dev
 

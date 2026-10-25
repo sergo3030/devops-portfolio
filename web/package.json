@@ -17,7 +17,8 @@
     "format:write": "prettier --write .",
     "typecheck": "npm run types && tsc --noEmit",
     "test": "npm run types && vitest run",
-    "check:size": "node scripts/check-bundle-size.mjs"
+    "check:size": "node scripts/check-bundle-size.mjs",
+    "check:page": "node scripts/check-built-page.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
