@@ -37,7 +37,8 @@ aws logout --profile portfolio-bootstrap
 2. The `build` workflow pushes an image to the repository and reports its digest (see
    "Building the image" below).
 3. Second apply, with the digest: `tofu -chdir=infra/prod plan -var image_digest=sha256:... -out=tfplan`.
-   The function URL is in the output `function_url`. Keep it out of the site until task 16.
+   The function URL is in the output `function_url`. The site calls it: put it, without a trailing
+   slash, in `web/.env.production` (see "Recreating" below if it changed).
 
 Pull requests that change `infra/prod/**` run `tofu plan` through the read-only role
 (`plan.yml`). It plans with the digest that is deployed now (read from the state output), so the
@@ -200,20 +201,20 @@ role), and the old URL answered 403.
 To recreate: apply with no `image_digest` (phase 1), run the `build` workflow, read the new
 digest (see "Building the image"), then
 `tofu plan -var image_digest=sha256:... -out=tfplan` and apply it. The new URL is different from
-the old one. A rebuild of the same commit has a different digest, so always take the digest from
+the old one: **update `web/.env.production` in a pull request**, or the site keeps calling the old
+address and shows "API offline" until you do. Merging it rebuilds the site (`pages.yml`). A rebuild of the same commit has a different digest, so always take the digest from
 ECR. If the build fails on a `429` from `public.ecr.aws`, re-run the failed jobs (D38).
 
 ## Cold start
 
 The first request after idle takes 3.9 to 4.6 s from the owner's laptop (about 2.8 s of that is
 container start and Python import, shown as `Init Duration` in the log), and 0.5 s once warm. The
-site waits 5 s for live data, so before the URL goes into the site (after task 16) either raise
-that deadline or shorten the start (a larger memory size gives more CPU; the function uses about
-80 MB of 512). The adapter also warns that `HOST` is deprecated in favour of `AWS_LWA_HOST`.
+site waits 8 s for live data (D44), so a cold start still ends in "Live from API". If the start
+grows, shorten it (a larger memory size gives more CPU; the function uses about 80 MB of 512). The adapter also warns that `HOST` is deprecated in favour of `AWS_LWA_HOST`.
 
 ## Cost and abuse
 
 Normal use costs a few cents a month (ECR storage of 3 images). The URL is public, so a
 sustained flood could cost real money before the $1 Budget email reaches anyone: a concurrency
-cap only bounds it partly. Until task 16 (CORS, headers), the URL stays out of the site. The cap
-is 2 now; `reserved_concurrency = 0` is the emergency brake.
+cap only bounds it partly. The site calls the URL since task 16b; CORS does not protect it from other callers (D43). The cap
+is 2; `reserved_concurrency = 0` is the emergency brake.

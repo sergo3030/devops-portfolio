@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import type { Content } from './generated/content';
 import { isContent } from './guard';
 
-export const TIMEOUT_MS = 5000;
+/**
+ * One deadline for the whole read. A cold start of the function takes 4 to 5 s, so it is 8 s. The
+ * saved copy is already on screen, so waiting longer only delays the "Live" label.
+ */
+export const TIMEOUT_MS = 8000;
 
 /** What the status line says: nothing, data from the API, or a saved copy because the API failed. */
 export type DataSource =
@@ -30,9 +34,13 @@ async function getJson(
 }
 
 /**
- * Reads `/content` and `/health` from the API. Both share one deadline. A bad `/content` (wrong
+ * Reads `/content`, then `/health`, from the API. Both share one deadline. A bad `/content` (wrong
  * status, not JSON, wrong shape, too slow) rejects. A bad `/health` only costs the version label.
  * The caller's signal cancels both requests, for example when the page is closed.
+ *
+ * They run one after the other on purpose: the function allows two concurrent executions, and two
+ * requests at once on a cold start would take both for one visitor. After `/content` the container
+ * is warm, so `/health` costs about 100 ms.
  */
 export async function fetchLive(
   base: string,
@@ -46,20 +54,19 @@ export async function fetchLive(
   signal?.addEventListener('abort', abort);
   const timer = setTimeout(abort, timeoutMs);
   try {
-    const health = getJson(`${base}/health`, controller.signal, fetchImpl)
-      .then((body) =>
-        typeof body === 'object' &&
-        body !== null &&
-        'version' in body &&
-        typeof body.version === 'string' &&
-        VERSION.test(body.version)
-          ? body.version
+    const body = await getJson(`${base}/content`, controller.signal, fetchImpl);
+    if (!isContent(body)) throw new Error('The API content does not match the content contract.');
+    const version = await getJson(`${base}/health`, controller.signal, fetchImpl)
+      .then((health) =>
+        typeof health === 'object' &&
+        health !== null &&
+        'version' in health &&
+        typeof health.version === 'string' &&
+        VERSION.test(health.version)
+          ? health.version
           : undefined,
       )
       .catch(() => undefined);
-    const body = await getJson(`${base}/content`, controller.signal, fetchImpl);
-    if (!isContent(body)) throw new Error('The API content does not match the content contract.');
-    const version = await health;
     return version === undefined ? { content: body } : { content: body, version };
   } finally {
     clearTimeout(timer);

@@ -94,7 +94,7 @@ web-dev: web-content
 
 # All web checks, the same as CI
 web-check: web-content
-    cd web && npm ci && npm run lint && npm run format && npm run typecheck && npm test && npm run build && npm run check:size
+    cd web && npm ci && npm run lint && npm run format && npm run typecheck && npm test && npm run build && npm run check:size && npm run check:page
 
 # Check the public content including the PRIVATE denylist (not available in CI)
 content-check:

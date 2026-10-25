@@ -61,6 +61,10 @@ jobs:
         working-directory: web
         run: npm run check:size
 
+      - name: The built page is wired to the API and its policy allows it
+        working-directory: web
+        run: npm run check:page
+
       - name: Fingerprint the page that was built
         id: hash
         run: echo "sha256=$(sha256sum web/dist/index.html | cut -d' ' -f1)" >> "${GITHUB_OUTPUT}"
