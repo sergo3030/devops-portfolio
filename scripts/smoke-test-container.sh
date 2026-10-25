@@ -117,8 +117,10 @@ env_names="$(docker image inspect "${image}" --format '{{range .Config.Env}}{{pr
 if echo "${env_names}" | grep -vx 'GPG_KEY' | grep -Ei 'KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL'; then
   fail "the image sets a secret-looking environment variable"
 fi
+# `find` exits non-zero when it cannot read a directory (the app user cannot read all of /), so its
+# exit status is ignored: only what it prints counts.
 leftovers="$(docker compose exec -T api sh -c \
-  "find / -xdev \\( -name '.env*' -o -name '.git' -o -name 'id_rsa*' -o -name '*.tfstate' -o -name '*.tfvars' \\) 2>/dev/null")"
+  "find / -xdev \\( -name '.env*' -o -name '.git' -o -name 'id_rsa*' -o -name '*.tfstate' -o -name '*.tfvars' \\) 2>/dev/null || true")"
 [ -z "${leftovers}" ] || fail "the image contains secret-looking files: ${leftovers}"
 app_files="$(docker compose exec -T api ls -A /app | tr -d '\r' | sort | tr '\n' ' ')"
 [ "${app_files}" = "content.public.json portfolio_api " ] || fail "/app holds unexpected files: ${app_files}"
