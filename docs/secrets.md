@@ -76,8 +76,10 @@ Stated plainly, because a security page that lists only strengths is not credibl
   is protected by its own sign-in security, not by this repository.
 - **The owner's machine during a login.** An admin session lasts until it is logged out or expires,
   and any program on the machine could use it then. The practice is to log in for a task and log out.
-- **Tools downloaded by workflows.** gitleaks, Trivy and hadolint are pinned by checksum, but a few
-  tools pinned inline are not tracked by Dependabot, so a bump is manual (planned for task 20).
+- **Tools downloaded by workflows.** gitleaks, Trivy and hadolint are pinned by checksum. The
+  Python tools are locked with hashes in `tools/` and updated by Dependabot. The binary tools are
+  not tracked by Dependabot, so a weekly workflow reports when one is behind its latest release
+  (see [stability](stability.md)); a bump is still a manual, reviewed change.
 - **A public, unauthenticated API.** Anyone can call it. It serves only public content, accepts
   nothing, and is capped, but it can be made to run, so it is a cost risk, not a data risk.
 - **Alerts that arrive late.** AWS Budget emails lag by hours; the cap and the brake are the defence.

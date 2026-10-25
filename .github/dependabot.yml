@@ -16,6 +16,21 @@ updates:
     commit-message:
       prefix: "chore(ci)"
 
+  # The command line tools that CI and `just` run (actionlint, zizmor, checkov and others), locked
+  # in tools/uv.lock so installs are hash-checked and bumps arrive as pull requests (D52).
+  - package-ecosystem: uv
+    directory: /tools
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      ci-tools:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"
+
   - package-ecosystem: uv
     directory: /app
     schedule:

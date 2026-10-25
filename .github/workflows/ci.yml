@@ -31,10 +31,10 @@ jobs:
           enable-cache: false
 
       - name: actionlint
-        run: uvx --from actionlint-py==1.7.12.25 actionlint
+        run: uv run --project tools --locked actionlint
 
       - name: zizmor
-        run: uvx zizmor@1.30.1 --offline --config .github/zizmor.yml .
+        run: uv run --project tools --locked zizmor --offline --config .github/zizmor.yml .
 
       - name: Account ID must come from the masked secret
         run: |
@@ -45,10 +45,10 @@ jobs:
           fi
 
       - name: dependabot.yml schema
-        run: uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
+        run: uv run --project tools --locked check-jsonschema --builtin-schema vendor.dependabot .github/dependabot.yml
 
       - name: shellcheck (the scripts in scripts/)
-        run: uvx --from shellcheck-py==0.10.0.1 shellcheck -x -S warning scripts/*.sh
+        run: uv run --project tools --locked shellcheck -x -S warning scripts/*.sh
 
       - name: Script tests (fake aws, docker, tofu and trivy)
         run: |
@@ -59,9 +59,13 @@ jobs:
           bash scripts/test-verify-clean.sh
           bash scripts/test-teardown.sh
           bash scripts/test-check-build-paths.sh
+          bash scripts/test-tool-pins.sh
 
       - name: The build paths match what goes into the image
         run: bash scripts/check-build-paths.sh
+
+      - name: Each tool that Dependabot cannot update has one pinned version
+        run: bash scripts/check-tool-pins.sh
 
   python:
     name: python (ruff, pytest)
@@ -145,7 +149,7 @@ jobs:
           enable-cache: false
 
       - name: checkov
-        run: uvx --from checkov==3.3.26 checkov --config-file .checkov.yaml
+        run: uv run --project tools --locked python -m checkov.main --config-file .checkov.yaml
 
   opentofu:
     name: opentofu (fmt, validate, test)
