@@ -25,4 +25,9 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
+          # One accepted advisory (D52): the Minerva timing attack on ecdsa's P-256 signing. It has no
+          # fix (every version is affected and the maintainers will not fix side channels), and
+          # checkov, the CI tool that depends on it, scans repository files offline and signs
+          # nothing. Revisit when a checkov release drops ecdsa. Any other high finding still fails.
+          allow-ghsas: GHSA-wj6h-64fc-37mp
           comment-summary-in-pr: never # the summary stays in the job, no extra token permission

@@ -86,6 +86,16 @@ release's published checksums file, and update the version and the checksum toge
 `just test-scripts` and open a pull request. The Docker image of uv (`app/Dockerfile`) is a
 different pin, tracked by Dependabot's docker ecosystem, and does not have to match the CI version.
 
+**One accepted advisory.** Putting the tools in a lockfile made GitHub's dependency review scan
+them, and it found GHSA-wj6h-64fc-37mp in `ecdsa 0.19.2` (a high-severity timing attack on P-256
+signing), which `checkov` depends on. No fixed version exists, every `ecdsa` release is affected,
+the maintainers consider side channels out of scope, and the newest checkov still requires it. The
+attack needs someone to time signing, key generation or key exchange; checkov only scans repository
+files offline, holds no keys, and runs in CI, not in the image. The advisory is therefore allowed by
+ID in `dependency-review.yml`, and only that one: any other high finding in `tools/` still fails
+the review. **Revisit** when a checkov release stops depending on `ecdsa`, or when the advisory
+gets a fix: check it whenever Dependabot bumps checkov.
+
 To run a Python tool: `uv run --project tools --locked <tool> ...`. Checkov runs as a module
 (`python -m checkov.main`) because its console script is a plain `.py` file that Windows cannot
 launch.
