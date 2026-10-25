@@ -248,6 +248,74 @@ jobs:
         if: always()
         run: docker compose down --volumes
 
+  e2e:
+    name: e2e (stack, site)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read # default, stated for clarity
+      id-token: write # trade the OIDC token for AWS credentials, to log in to public ECR (D40)
+    env:
+      BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+      APP_VERSION: "0.0.0-dev"
+      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Same authenticated pull of the adapter image as the image job (see there, D40).
+      - name: Assume the plan role (for authenticated pulls from public ECR)
+        id: aws
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-plan
+          role-session-name: e2e-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Log in to public ECR
+        if: steps.aws.outcome == 'success'
+        run: bash scripts/ecr-public-login.sh
+
+      - name: Build the image and start the stack (CORS allows the site under test)
+        env:
+          GIT_SHA: ${{ github.sha }}
+        run: bash scripts/retry.sh 3 30 -- docker compose up --build --detach --wait --wait-timeout 90
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          enable-cache: false
+
+      - name: Build the content snapshot the site embeds
+        run: uv run --locked --project app --only-group content python scripts/check_content.py --allow-missing-denylist --build web/src/generated/content.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.node-version
+
+      - name: Install (exact versions from the lock file, no install scripts)
+        working-directory: web
+        run: npm ci
+
+      # Playwright drives the Google Chrome that the runner image already has: nothing is downloaded.
+      - name: End-to-end test in a real browser
+        working-directory: web
+        run: npm run e2e
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose down --volumes
+
   web:
     name: web (lint, test, build)
     runs-on: ubuntu-24.04

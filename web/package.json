@@ -18,7 +18,8 @@
     "typecheck": "npm run types && tsc --noEmit",
     "test": "npm run types && vitest run",
     "check:size": "node scripts/check-bundle-size.mjs",
-    "check:page": "node scripts/check-built-page.mjs"
+    "check:page": "node scripts/check-built-page.mjs",
+    "e2e": "npm run types && playwright test"
   },
   "dependencies": {
     "react": "19.3.0",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.1",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { loadEnv, type Plugin } from 'vite';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const SNAPSHOT = fileURLToPath(new URL('./src/generated/content.json', import.meta.url));
 
@@ -63,6 +63,8 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: ['./src/test-setup.ts'],
+      // The end-to-end tests run with Playwright (`npm run e2e`), not with Vitest.
+      exclude: [...configDefaults.exclude, 'e2e/**'],
     },
   };
 });

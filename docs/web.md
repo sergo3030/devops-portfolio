@@ -28,6 +28,33 @@ site shows "API offline: showing the saved copy", which is the intended fallback
 The two requests run one after the other, not together: the function allows two concurrent
 executions, and on a cold start two requests at once would use both for one visitor.
 
+## End-to-end test (task 17, D45)
+
+`web/e2e/site.e2e.ts` drives the built site in a real Chrome (Playwright) against a running API.
+It is the only test in which the Content-Security-Policy, CORS, the fetch options and the status
+line all have to work together. It checks that:
+
+- the page shows the content and the version that the API serves, with no console error (a CSP or
+  CORS violation would be one);
+- the page asks for `/content` first and `/health` after it, never together;
+- with the API unreachable, answering 500, or answering something that is not the content, the
+  page says "API offline: showing the saved copy" and is still the portfolio.
+
+In CI the job `e2e (stack, site)` starts the container with `docker-compose.e2e.yml`, which only
+adds `CORS_ALLOW_ORIGINS=http://127.0.0.1:4173` (the origin of `vite preview`; the image allows
+the real site only). Playwright uses the Chrome that the runner image has, so no browser is
+downloaded. The suite does not retry: a flaky end-to-end test hides what it exists to show.
+
+Locally (needs Chrome): start the API with the override and run the test.
+
+```bash
+CORS_ALLOW_ORIGINS=http://127.0.0.1:4173 just api-dev   # in one terminal
+just web-e2e                                            # in another
+```
+
+What it does not cover: the real function URL and the deployed site. A standing check of those
+is task 17's second part (the `synthetic` workflow).
+
 ## Commands
 
 | Command | What it does |
@@ -35,6 +62,7 @@ executions, and on a cold start two requests at once would use both for one visi
 | `just web-content` | Builds the snapshot the site embeds (`web/src/generated/content.json`, approved lines only) |
 | `just web-dev` | Starts the dev server. Run `just api-dev` too for live data. `/api` is proxied to the API, so no CORS is needed |
 | `just web-check` | Everything CI runs: install from the lock file, ESLint, Prettier, TypeScript, tests, build, bundle budget, built-page wiring check |
+| `just web-e2e` | The end-to-end test in Chrome against a running API (see above) |
 | `just schema-export` | Regenerates `content/schema/published.schema.json` from the API models |
 
 ## The contract with the API
