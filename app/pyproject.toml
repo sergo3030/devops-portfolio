@@ -6,7 +6,7 @@ version = "0.0.0"
 description = "Read-only FastAPI service that serves the portfolio's published content"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi==0.143.1",
+    "fastapi==0.146.0",
     "pydantic==2.14.1",
     "uvicorn==0.54.0",
 ]
@@ -23,7 +23,7 @@ dev = [
     "httpx==0.28.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
-    "ruff==0.17.0",
+    "ruff==0.17.1",
     "types-jsonschema==4.26.0.20261006",
     "types-pyyaml==6.0.12.20260906",
 ]
