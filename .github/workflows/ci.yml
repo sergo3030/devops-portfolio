@@ -47,12 +47,17 @@ jobs:
       - name: dependabot.yml schema
         run: uvx check-jsonschema@0.38.2 --builtin-schema vendor.dependabot .github/dependabot.yml
 
-      - name: Script tests (fake aws, docker and trivy)
+      - name: shellcheck (the scripts in scripts/)
+        run: uvx --from shellcheck-py==0.10.0.1 shellcheck -x -S warning scripts/*.sh
+
+      - name: Script tests (fake aws, docker, tofu and trivy)
         run: |
           bash scripts/test-ecr-image.sh
           bash scripts/test-retry-and-trivy.sh
           bash scripts/test-check-release.sh
           bash scripts/test-check-site-link.sh
+          bash scripts/test-verify-clean.sh
+          bash scripts/test-teardown.sh
 
   python:
     name: python (ruff, pytest)
