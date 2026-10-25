@@ -143,3 +143,12 @@ jobs:
             echo "- requested: \`${DIGEST}\` (version \`${VERSION:-unknown}\`, commit \`${COMMIT:-unknown}\`)"
             echo "- plan changes something: \`${CHANGES:-unknown}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+      # Last on purpose: the deploy itself is verified above, and this step only says that the
+      # site calls some other address (a recreated function has a new one).
+      - name: Check that the site calls this API
+        if: inputs.apply
+        working-directory: infra/prod
+        run: |
+          url="$(tofu output -no-color -raw function_url)"
+          bash "${GITHUB_WORKSPACE}/scripts/check-site-link.sh" "${url}" "${GITHUB_WORKSPACE}/web/.env.production"

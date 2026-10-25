@@ -202,8 +202,39 @@ To recreate: apply with no `image_digest` (phase 1), run the `build` workflow, r
 digest (see "Building the image"), then
 `tofu plan -var image_digest=sha256:... -out=tfplan` and apply it. The new URL is different from
 the old one: **update `web/.env.production` in a pull request**, or the site keeps calling the old
-address and shows "API offline" until you do. Merging it rebuilds the site (`pages.yml`). A rebuild of the same commit has a different digest, so always take the digest from
+address and shows "API offline" until you do. Merging it rebuilds the site (`pages.yml`). Then run
+`synthetic` by hand (see "Standing check"). A rebuild of the same commit has a different digest, so always take the digest from
 ECR. If the build fails on a `429` from `public.ecr.aws`, re-run the failed jobs (D38).
+
+## Standing check of the site and the API (task 17, D46)
+
+The `synthetic` workflow runs every day at 06:17 UTC and on demand
+(`gh workflow run synthetic.yml`). It runs `scripts/check_live.py` against
+`https://sergo3030.github.io/devops-portfolio/` with no credentials:
+
+| Check | Fails when |
+|---|---|
+| site policy | the page has no Content-Security-Policy, or `connect-src` does not name exactly one API origin |
+| `/health` | not 200, status not `ok`, no valid version or 40-character commit, cacheable, no CORS header for the site, credentials allowed, or a security header missing (or a `uvicorn` banner) |
+| `/content` | not 200, a required section missing, approval state in the answer, not cacheable for 5 minutes, no CORS header for the site |
+| another website | the API sends a CORS header for `https://evil.example` |
+| writes | a `POST` is not refused with 405 and `Allow: GET, OPTIONS` |
+
+It repeats a failing run 3 times, 20 s apart, so a cold start or a CDN delay is not an alarm. A
+failure looks like `FAIL /health: ...` lines, then `live check FAILED (n problem(s))` and a red
+run. GitHub emails a failed scheduled run to whoever last edited the schedule. The job summary
+lists every check with its result, including the version and commit the API reports.
+
+Reading a failure: "no answer" for `/health` and `/content` with a site that is fine means the API
+is down or the site points at an old address (compare `web/.env.production` with
+`tofu output function_url`). One CORS line failing means the image's `CORS_ALLOW_ORIGINS` or a
+platform change. GitHub pauses scheduled workflows in a repository with no activity for 60 days:
+after a quiet spell, run it by hand.
+
+After a teardown and recreate the function URL is new. Update `web/.env.production` in a pull
+request, merge it (the site rebuilds), then run `synthetic` by hand. The deploy workflow also ends
+with "Check that the site calls this API", which fails when the file and production disagree; the
+deploy itself is already verified by then.
 
 ## Cold start
 
