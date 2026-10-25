@@ -8,6 +8,11 @@ from pathlib import Path
 DEFAULT_VERSION = "0.0.0-dev"
 VERSION_PATTERN = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$")
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{7,40}$")
+# An origin is scheme, host and optional port, nothing else: no path, no wildcard. Plain http is
+# only for a local development server.
+ORIGIN_PATTERN = re.compile(
+    r"^(https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?|http://(localhost|127\.0\.0\.1))(:[0-9]{1,5})?$"
+)
 
 
 class SettingsError(ValueError):
@@ -25,6 +30,15 @@ class Settings:
     # pyproject.toml is only a placeholder.
     app_version: str
     git_sha: str | None
+    # Websites whose scripts may read the API in a browser (CORS). Empty: no CORS headers at all.
+    cors_origins: tuple[str, ...]
+
+
+def _origins(value: str) -> tuple[str, ...]:
+    origins = tuple(part.strip() for part in value.split(",") if part.strip())
+    if not all(ORIGIN_PATTERN.fullmatch(origin) for origin in origins):
+        raise SettingsError("CORS_ALLOW_ORIGINS has an invalid value")
+    return origins
 
 
 def _checked(name: str, value: str, pattern: re.Pattern[str]) -> str:
@@ -45,4 +59,5 @@ def get_settings() -> Settings:
             "APP_VERSION", os.environ.get("APP_VERSION", DEFAULT_VERSION), VERSION_PATTERN
         ),
         git_sha=_checked("GIT_SHA", git_sha, GIT_SHA_PATTERN) if git_sha else None,
+        cors_origins=_origins(os.environ.get("CORS_ALLOW_ORIGINS", "")),
     )

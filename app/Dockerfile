@@ -57,6 +57,8 @@ LABEL org.opencontainers.image.title="portfolio-api" \
 # instead of waiting for ever.
 COPY --from=lwa /lambda-adapter /opt/extensions/lambda-adapter
 
+# CORS_ALLOW_ORIGINS is the one website whose scripts may read the API in a browser: the site on
+# GitHub Pages. It is public and fixed, so it is part of the image and a deploy stays an image swap.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:${PATH}" \
@@ -67,6 +69,7 @@ ENV PYTHONUNBUFFERED=1 \
     AWS_LWA_READINESS_CHECK_HEALTHY_STATUS=200 \
     AWS_LWA_READINESS_CHECK_TIMEOUT_SECONDS=8 \
     CONTENT_FILE=/app/content.public.json \
+    CORS_ALLOW_ORIGINS=https://sergo3030.github.io \
     APP_VERSION=${APP_VERSION} \
     GIT_SHA=${GIT_SHA}
 

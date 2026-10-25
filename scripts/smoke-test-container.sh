@@ -66,4 +66,60 @@ fi
 [ "$(label org.opencontainers.image.source)" != "" ] || fail "image source label is missing"
 ok "the OCI labels carry the version and the commit"
 
+# ---------------------------------------------------------------- hardening (task 16)
+site_origin="https://sergo3030.github.io"
+
+# Every kind of answer carries the security headers, and none of them announces the server.
+for path in /health /content /nope; do
+  answer="$(curl -s -D - -o /dev/null "${base_url}${path}")"
+  echo "${answer}" | grep -qi '^x-content-type-options: nosniff' || fail "${path} has no nosniff header"
+  echo "${answer}" | grep -qi "^content-security-policy: default-src 'none'; frame-ancestors 'none'" \
+    || fail "${path} has no Content-Security-Policy"
+  echo "${answer}" | grep -qi '^referrer-policy: no-referrer' || fail "${path} has no Referrer-Policy"
+  echo "${answer}" | grep -qi '^strict-transport-security: ' || fail "${path} has no Strict-Transport-Security"
+  if echo "${answer}" | grep -qi '^server:'; then fail "${path} announces a server header"; fi
+done
+curl -s -D - -o /dev/null "${base_url}/health" | grep -qi '^cache-control: no-store' || fail "/health may be cached"
+ok "every answer carries the security headers, none announces the server, /health is not cacheable"
+
+# CORS: only the site's origin may read the API in a browser.
+allowed="$(curl -s -D - -o /dev/null -H "Origin: ${site_origin}" "${base_url}/content" | tr -d '\r')"
+echo "${allowed}" | grep -qix "access-control-allow-origin: ${site_origin}" || fail "the site origin is not allowed by CORS"
+if echo "${allowed}" | grep -qi '^access-control-allow-credentials'; then fail "CORS allows credentials"; fi
+other="$(curl -s -D - -o /dev/null -H "Origin: https://evil.example" "${base_url}/content")"
+if echo "${other}" | grep -qi '^access-control-allow-origin'; then fail "another origin is allowed by CORS"; fi
+preflight="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: ${site_origin}" \
+  -H 'Access-Control-Request-Method: GET' "${base_url}/content")"
+[ "${preflight}" = "200" ] || fail "the CORS preflight for GET answered ${preflight}"
+bad_preflight="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: ${site_origin}" \
+  -H 'Access-Control-Request-Method: POST' "${base_url}/content")"
+[ "${bad_preflight}" = "400" ] || fail "the CORS preflight for POST answered ${bad_preflight}"
+ok "CORS allows only the site's origin, GET, and no credentials"
+
+# The API only reads: other methods and request bodies are refused.
+post="$(curl -s -o /dev/null -w '%{http_code}' -X POST "${base_url}/content")"
+[ "${post}" = "405" ] || fail "POST answered ${post}, expected 405"
+body="$(curl -s -o /dev/null -w '%{http_code}' -X GET --data 'x' "${base_url}/health")"
+[ "${body}" = "413" ] || fail "a GET with a body answered ${body}, expected 413"
+ok "other methods are refused (405) and a request body is refused (413)"
+
+big_header="$(head -c 20000 /dev/zero | tr '\0' 'a')"
+too_big="$(curl -s -o /dev/null -w '%{http_code}' -H "X-Big: ${big_header}" "${base_url}/health")"
+[ "${too_big}" = "431" ] || fail "20 KB of headers answered ${too_big}, expected 431"
+long_url="$(curl -s -o /dev/null -w '%{http_code}' "${base_url}/health?x=$(head -c 3000 /dev/zero | tr '\0' 'a')")"
+[ "${long_url}" = "414" ] || fail "a 3 KB URL answered ${long_url}, expected 414"
+ok "oversized headers (431) and URLs (414) are refused"
+
+# No secrets in the image: no secret-looking variable, and none of the usual secret files.
+env_names="$(docker image inspect "${image}" --format '{{range .Config.Env}}{{println .}}{{end}}' | cut -d= -f1)"
+if echo "${env_names}" | grep -Ei 'KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL'; then
+  fail "the image sets a secret-looking environment variable"
+fi
+leftovers="$(docker compose exec -T api sh -c \
+  "find / -xdev \\( -name '.env*' -o -name '.git' -o -name 'id_rsa*' -o -name '*.tfstate' -o -name '*.tfvars' \\) 2>/dev/null")"
+[ -z "${leftovers}" ] || fail "the image contains secret-looking files: ${leftovers}"
+app_files="$(docker compose exec -T api ls -A /app | tr -d '\r' | sort | tr '\n' ' ')"
+[ "${app_files}" = "content.public.json portfolio_api " ] || fail "/app holds unexpected files: ${app_files}"
+ok "the image has no secret-looking variable or file, and /app holds only the app and its content"
+
 echo "all smoke checks passed"
