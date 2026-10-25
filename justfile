@@ -25,6 +25,7 @@ test-scripts:
     bash scripts/test-ecr-image.sh
     bash scripts/test-retry-and-trivy.sh
     bash scripts/test-check-release.sh
+    bash scripts/test-check-site-link.sh
 
 # Scan IaC, workflows and Dockerfiles (same check as CI)
 iac-scan:

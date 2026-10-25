@@ -1,0 +1,38 @@
+name: synthetic
+
+# A standing check of the deployed site and API from the outside (task 17). It reads the address
+# of the API from the live site's Content-Security-Policy, asks the API what a browser on the
+# site would ask (health and version, content, CORS for the site and for a stranger, security
+# headers, writes refused) and fails loudly if anything is off. It catches what no deploy does:
+# an API that went down, a site that still calls the address of a function that was recreated, a
+# change on the platform. It uses no credentials and changes nothing.
+#
+# A failed scheduled run is emailed to the person who last edited the schedule below, and shows
+# red in the Actions tab. GitHub pauses scheduled workflows in a repository with no activity for
+# 60 days: run it by hand once after a quiet spell (docs/runbook-prod.md).
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # every day, away from the busy minutes on the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic
+  cancel-in-progress: false
+
+jobs:
+  synthetic:
+    name: synthetic (site and API)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the site and the API it calls
+        run: python3 scripts/check_live.py https://sergo3030.github.io/devops-portfolio/
