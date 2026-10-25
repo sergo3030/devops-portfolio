@@ -53,8 +53,12 @@ updates:
       web:
         patterns: ["*"]
     # ESLint 10 and TypeScript 7 need the lint and type plugins to catch up (D31).
+    # @types/node describes the Node the site is built and tested on (web/.node-version), so its
+    # major follows that version and is bumped with it, not on its own (D51).
     # Minor and patch updates still flow; a major is a deliberate task.
     ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "eslint"
