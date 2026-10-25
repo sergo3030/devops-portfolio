@@ -36,6 +36,18 @@ resource "github_actions_secret" "aws_account_id" {
   value       = var.aws_account_id
 }
 
+# The same value for pull requests that Dependabot opens. Workflows that Dependabot triggers read
+# secrets from this store only, never from the Actions secrets above, so without it the role ARN
+# is empty and the AWS login fails ("Request ARN is invalid"): the plan jobs fail, and the image
+# jobs fall back to an anonymous registry pull that gets a 429 (D51). It was first created by hand
+# as an experiment, which showed Dependabot runs can then assume the plan role; applying this
+# overwrites that value with the same one.
+resource "github_dependabot_secret" "aws_account_id" {
+  repository  = github_repository.this.name
+  secret_name = "AWS_ACCOUNT_ID"
+  value       = var.aws_account_id
+}
+
 # Dependabot opens pull requests for vulnerable dependencies.
 resource "github_repository_dependabot_security_updates" "this" {
   repository = github_repository.this.name

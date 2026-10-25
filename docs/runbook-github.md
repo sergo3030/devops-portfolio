@@ -32,6 +32,15 @@ tofu import github_repository_vulnerability_alerts.this devops-portfolio
 
 An `import` block cannot be kept in the code, because `tofu test` crashes on it.
 
+## The account ID, in two secret stores
+
+`AWS_ACCOUNT_ID` is set twice by `infra/github`, from the same variable: as an Actions secret (for
+workflows on pull requests and `main`) and as a Dependabot secret (for workflows that Dependabot
+triggers, which cannot read Actions secrets; D51). It is a secret only so that GitHub masks it in
+public logs. The values cannot be read back, so a change made in the web UI is not noticed as drift:
+set it through `tofu apply` with `TF_VAR_aws_account_id`. Check that both exist with
+`gh secret list` and `gh api repos/sergo3030/devops-portfolio/dependabot/secrets`.
+
 ## Going public takes two applies
 
 GitHub rejects secret scanning and push protection in the same update that makes a

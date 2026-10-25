@@ -20,6 +20,20 @@ run "aws_actions_are_allowed_and_the_account_id_is_a_masked_secret" {
   }
 }
 
+run "dependabot_runs_get_the_same_account_id_secret" {
+  command = plan
+
+  assert {
+    condition     = github_dependabot_secret.aws_account_id.secret_name == "AWS_ACCOUNT_ID"
+    error_message = "workflows that Dependabot triggers read secrets only from the Dependabot store, so it needs AWS_ACCOUNT_ID too"
+  }
+
+  assert {
+    condition     = github_dependabot_secret.aws_account_id.value == github_actions_secret.aws_account_id.value
+    error_message = "both stores must hold the same account ID"
+  }
+}
+
 run "bad_account_id_is_rejected" {
   command = plan
 
