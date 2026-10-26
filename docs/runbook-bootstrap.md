@@ -32,8 +32,10 @@ The state bucket does not exist yet, so the first apply uses a local backend.
 4. Restore `backend.tf`, then `tofu init -migrate-state -force-copy`.
 5. Confirm the state object exists in the bucket and `tofu plan` reports no changes.
 6. Delete `terraform.tfstate*` and `tfplan`. They are gitignored and hold the alert email.
-7. Look in the inbox for the AWS verification email for the alert address and click it. Until you
-   do, the Budget alerts are not delivered.
+7. Look in the inbox for an AWS verification email for the alert address and click it if one
+   arrives. Until you do, Budget alerts may not be delivered. (None arrives when the address's
+   User Notifications contact is still `active`, as after a Level 2 rebuild: see "Cost guards" in
+   `runbook-prod.md`.)
 
 Set `AWS_PROFILE=portfolio-bootstrap` and `AWS_REGION=us-east-1` in the shell first.
 
@@ -56,8 +58,9 @@ account ID). The prod root is empty after Level 1. To bring everything back:
 3. **Production**: `just up-prod apply` (phase 1, the build workflow, phase 2). Reject the build
    run's deploy approval, set the new function URL in `web/.env.production` in a pull request, then
    `gh workflow enable synthetic.yml` and run it.
-4. **The alert address**: check the inbox for an AWS verification email (see "Cost guards" in
-   `runbook-prod.md`).
+4. **The alert address**: check that the contact is still `active`
+   (`aws notificationscontacts list-email-contacts`). In the rehearsal it was, and no verification
+   email was sent; if one does arrive, click it (see "Cost guards" in `runbook-prod.md`).
 
 If the github state backup is lost, `infra/github` has to be rebuilt by importing its resources (see
 `runbook-github.md`).
@@ -78,8 +81,8 @@ tofu apply -replace=aws_budgets_budget.monthly -replace=aws_ce_anomaly_subscript
 ```
 
 Both resources are free and are recreated in seconds. AWS then sends a verification email for the
-address; **click it within 12 hours**, because alerts are not delivered to an unverified address
-(see "Cost guards" in `runbook-prod.md`).
+address if the contact needs it; **click that email within 12 hours**, because alerts are not
+delivered to an unverified address (see "Cost guards" in `runbook-prod.md`).
 
 ## Roles
 

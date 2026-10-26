@@ -361,8 +361,12 @@ AWS sends a verification email ("Verify <address> for AWS accountId …") that e
 and alerts are not delivered until the address is verified. Found on 2026-10-26: the first test
 budget (2026-10-25) was over its threshold from the start and sent nothing, while the verification
 email sat unclicked; after the owner verified the address, the replacement budget's alert arrived
-within seconds. **After any change to the Budget notifications (a first apply, a replace, a
-rebuild), look in the inbox for that verification email and click it.**
+within seconds. **After a change to the Budget notifications, look in the inbox for that
+verification email, and click it if it is there.** It does not always come: the whole Level 2
+rebuild on 2026-10-26 recreated both Budgets and the anomaly subscription and sent **no** new
+verification email, because the address's User Notifications contact (created 2026-10-20) survives
+Level 2 and stayed `active`. Check it with `aws notificationscontacts list-email-contacts`; if it
+is `active`, nothing needs doing.
 
 **The brake**, from the owner's machine with an `aws login` session (full plan first, as always):
 
