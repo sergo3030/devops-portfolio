@@ -16,7 +16,6 @@ test run only in GitHub Actions. Everything else runs natively.
 | just | 1.59.0 | `winget install --id Casey.Just -e` |
 | pre-commit | 4.7.0 | `uv tool install pre-commit --python 3.13` |
 | Hadolint | 2.15.1 | not in winget. Download `hadolint-windows-x86_64.exe` from the GitHub release, verify its SHA-256 (`01d927294962b5387f9ead4f18679158452be4f17c765ad0bdffe5264b9c7b0a`) and put it on the PATH as `hadolint.exe`. Lints the Dockerfile only; containers are built in CI |
-| draw.io desktop | 26.0.4 | optional, only to edit the diagrams in `docs/diagrams/`: `winget install --id JGraph.Draw -e`, then `just diagrams` exports the PNGs |
 | AWS CLI | later (task 5/6) | `winget install --id Amazon.AWSCLI -e` |
 
 ## Notes
