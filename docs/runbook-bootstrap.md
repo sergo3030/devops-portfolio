@@ -28,7 +28,7 @@ The state bucket does not exist yet, so the first apply uses a local backend.
 
 1. Make sure `infra/bootstrap/backend.tf` does not exist (on a rebuild, move it away).
 2. In `infra/bootstrap`: `tofu init`, then `tofu plan -out=tfplan`. Read the plan.
-3. `tofu apply tfplan`. Expect 16 resources.
+3. `tofu apply tfplan`. Expect 19 resources.
 4. Restore `backend.tf`, then `tofu init -migrate-state -force-copy`.
 5. Confirm the state object exists in the bucket and `tofu plan` reports no changes.
 6. Delete `terraform.tfstate*` and `tfplan`. They are gitignored and hold the alert email.
@@ -36,6 +36,31 @@ The state bucket does not exist yet, so the first apply uses a local backend.
    do, the Budget alerts are not delivered.
 
 Set `AWS_PROFILE=portfolio-bootstrap` and `AWS_REGION=us-east-1` in the shell first.
+
+## Rebuilding after Level 2 (rehearsed 2026-10-26)
+
+Level 2 destroys the state bucket, and with it the states of **all three roots**. `teardown-aws.sh`
+saves the github root's state first as `infra/github/state-backup.tfstate` (gitignored: it holds the
+account ID). The prod root is empty after Level 1. To bring everything back:
+
+1. **The bootstrap root**: follow "First apply" above. Move `backend.tf` away, delete the leftover
+   local `terraform.tfstate*`, `tofu init`, plan, read it (19 to add), apply, restore `backend.tf`,
+   `tofu init -migrate-state -force-copy`, plan (no changes). The old bucket name was free again
+   at once. If AWS ever refuses it, change `state_bucket_suffix` and the bucket name in the three
+   `backend.tf` files.
+2. **The github root**: `tofu -chdir=infra/github init`, then
+   `tofu -chdir=infra/github state push state-backup.tfstate`, then a plan with
+   `TF_VAR_aws_account_id` and `GITHUB_TOKEN` set: it must say "No changes". Delete the backup file.
+   The Actions and Dependabot secrets and the `prod` environment were never removed, so nothing else
+   is needed for CI.
+3. **Production**: `just up-prod apply` (phase 1, the build workflow, phase 2). Reject the build
+   run's deploy approval, set the new function URL in `web/.env.production` in a pull request, then
+   `gh workflow enable synthetic.yml` and run it.
+4. **The alert address**: check the inbox for an AWS verification email (see "Cost guards" in
+   `runbook-prod.md`).
+
+If the github state backup is lost, `infra/github` has to be rebuilt by importing its resources (see
+`runbook-github.md`).
 
 ## Day-to-day
 

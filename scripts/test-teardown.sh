@@ -18,7 +18,7 @@ fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 pass() { echo "ok: $*"; }
 
 # The layout the scripts expect, with copies of the scripts under test.
-mkdir -p "${work}/repo/scripts" "${work}/repo/infra/prod" "${work}/repo/infra/bootstrap" "${work}/bin"
+mkdir -p "${work}/repo/scripts" "${work}/repo/infra/prod" "${work}/repo/infra/bootstrap" "${work}/repo/infra/github" "${work}/bin"
 cp "${repo}"/scripts/{teardown-lib,teardown-api,teardown-aws,up-prod,verify-clean}.sh "${work}/repo/scripts/"
 echo '# backend' >"${work}/repo/infra/bootstrap/backend.tf"
 
@@ -35,6 +35,7 @@ echo "tofu $*" >>"${LOG}"
 case "$*" in
   *" output "*) [ -n "${FAKE_DIGEST:-}" ] && printf '%s' "${FAKE_DIGEST}" || exit 1 ;;
   *" show "*) echo "RENDERED PLAN ${*: -1}" ;;
+  *" state pull"*) [ -z "${FAKE_STATE_EMPTY:-}" ] && echo '{"version": 4, "lineage": "abc", "serial": 3, "resources": []}' ;;
 esac
 FAKE
 cat >"${work}/bin/gh" <<'FAKE'
@@ -126,8 +127,15 @@ run x teardown-aws.sh apply "remove aws"$'\n'"y"$'\n'"destroy bootstrap" -- VERI
 # bootstrap items, so the run ends non-zero: that is the check doing its job.
 check "aws apply runs: state move, force_destroy apply, fresh destroy plan, destroy" \
   "$(awk '/migrate-state/{m=NR} /apply .*tfplan-force/{a=NR} /plan .*-destroy/{p=NR} /apply .*tfplan-destroy/{d=NR} END{exit !(m && a>m && p>a && d>p)}' "${work}/log" && echo 0 || echo 1)"
+check "aws apply backs up the github state first, before the state move" \
+  "$(awk '/state pull/{b=NR} /migrate-state/{m=NR} END{exit !(b && m>b)}' "${work}/log" && grep -q lineage "${work}/repo/infra/github/state-backup.tfstate" && echo 0 || echo 1)"
 check "aws apply puts backend.tf back" "$([ -f "${work}/repo/infra/bootstrap/backend.tf" ] && [ ! -f "${work}/repo/infra/bootstrap/backend.tf.off" ] && echo 0 || echo 1)"
 check "aws apply ends with verify-clean at level2" "$(grep -q 'NOT CLEAN at level2' "${work}/out" && echo 0 || echo 1)"
+
+rm -f "${work}/repo/infra/github/state-backup.tfstate"
+run x teardown-aws.sh apply "remove aws" -- FAKE_STATE_EMPTY=1
+check "aws apply: an unreadable github state stops everything before the backend moves" \
+  "$([ "${code}" != 0 ] && ! called 'migrate-state' && ! called 'tofu .* apply' && [ -f "${work}/repo/infra/bootstrap/backend.tf" ] && [ ! -f "${work}/repo/infra/github/state-backup.tfstate" ] && echo 0 || echo 1)"
 
 run x teardown-aws.sh apply "remove aws"$'\n'"y"$'\n'"nope" --
 check "aws apply: a wrong final phrase stops before the destroy" \
