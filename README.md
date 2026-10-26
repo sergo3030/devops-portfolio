@@ -76,7 +76,7 @@ are the real protection. Details and the test results: [cost guards](docs/runboo
 | Run it and operate it | [prod root](docs/runbook-prod.md), [bootstrap root](docs/runbook-bootstrap.md), [GitHub root](docs/runbook-github.md) |
 | Why it is built this way | [decisions](docs/decisions.md), [the plan](docs/aws-lambda-baseline-plan.md) |
 | Security | [how secrets work here](docs/secrets.md), [SECURITY.md](SECURITY.md) |
-| Reliability | [stability: flakiness, timings, pinned tools](docs/stability.md) |
+| Reliability | [stability: flakiness, timings, pinned tools](docs/stability.md), [end of life: pause, remove, retire](docs/end-of-life.md) |
 | Everything created by hand | [manual steps](docs/manual-steps.md), [inventory of resources](docs/inventory.md) |
 
 ## Quick start (Windows, Git Bash)
