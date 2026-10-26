@@ -32,7 +32,7 @@ decision per state. List them with `gh workflow list --all`.
 workflows may also be paused by GitHub itself after 60 days without repository activity.
 
 Pipelines that **need AWS** also fail once it is gone: `plan` (on pull requests that change
-`infra/`), `build`, `image` and `release`. Merges that touch image inputs fail at the push step while
+`infra/`), `build` and `release`. A release or a manual `build` run fails at the push step while
 the repository does not exist. None of them is a required check, and the registry login in `ci`
 falls back softly, so expect red runs in those workflows, not a blocked repository.
 
