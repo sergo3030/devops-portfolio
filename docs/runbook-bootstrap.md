@@ -32,6 +32,8 @@ The state bucket does not exist yet, so the first apply uses a local backend.
 4. Restore `backend.tf`, then `tofu init -migrate-state -force-copy`.
 5. Confirm the state object exists in the bucket and `tofu plan` reports no changes.
 6. Delete `terraform.tfstate*` and `tfplan`. They are gitignored and hold the alert email.
+7. Look in the inbox for the AWS verification email for the alert address and click it. Until you
+   do, the Budget alerts are not delivered.
 
 Set `AWS_PROFILE=portfolio-bootstrap` and `AWS_REGION=us-east-1` in the shell first.
 
@@ -50,7 +52,9 @@ the email (set `TF_VAR_budget_alert_email` first) or the thresholds, replace bot
 tofu apply -replace=aws_budgets_budget.monthly -replace=aws_ce_anomaly_subscription.daily
 ```
 
-Both resources are free and are recreated in seconds.
+Both resources are free and are recreated in seconds. AWS then sends a verification email for the
+address; **click it within 12 hours**, because alerts are not delivered to an unverified address
+(see "Cost guards" in `runbook-prod.md`).
 
 ## Roles
 

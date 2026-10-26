@@ -323,13 +323,21 @@ AWS has no hard cap, so these are alerts and limits, checked on 2026-10-25:
 |---|---|---|
 | Reserved concurrency 2 | At most 2 requests run at once; more get `429` | `get-function-concurrency` says 2 (account quota 40, 38 unreserved). 40 parallel `/health` gave 25 × 200 and 15 × 429, 60 parallel `/content` gave 52 × 200 and 8 × 429. The CloudWatch `Throttles` metric lags and still read 0 |
 | Emergency brake | `reserved_concurrency = 0` refuses every request | Applied for real: `429 ReservedFunctionConcurrentInvocationLimitExceeded` on `/health` and `/content`, the site showed "API offline: showing the saved copy", `synthetic` failed. Restored: "Live from API · version 0.1.1", `synthetic` passed, a plan said No changes. It took about 5 minutes of downtime in all |
-| Budget `portfolio-monthly-1usd` | Emails at 80% actual, 100% forecast, 100% actual | A second budget alerts on any spend (below); month-to-date spend was $0.002 |
+| Budget `portfolio-monthly-1usd` | Emails at 80% actual, 100% forecast, 100% actual | **Delivered in a test (2026-10-26):** a second budget over its threshold emailed the owner within seconds (below). Month-to-date spend was $0.004 |
 | Cost Anomaly Detection | Daily email for an anomaly of $1 or more | Cannot be triggered on demand; only its existence (in the state) is checked |
 | Small function | 512 MB, 10 s, no provisioned concurrency, logs kept 7 days, ECR keeps 3 images | Read back with the CLI |
 
-**Alerts are late.** AWS evaluates Budgets a few times a day and bills with a delay, so a flood can
-spend for hours before any email. The cap (2) and the brake are the real protection; the email is
+**Alerts can be late.** AWS evaluates Budgets a few times a day and bills with a delay, so a flood
+can spend for hours before any email. The cap (2) and the brake are the real protection; the email is
 the backstop.
+
+**An unverified address gets no alert.** When a budget's email subscription is created or replaced,
+AWS sends a verification email ("Verify <address> for AWS accountId …") that expires after 12 hours,
+and alerts are not delivered until the address is verified. Found on 2026-10-26: the first test
+budget (2026-10-25) was over its threshold from the start and sent nothing, while the verification
+email sat unclicked; after the owner verified the address, the replacement budget's alert arrived
+within seconds. **After any change to the Budget notifications (a first apply, a replace, a
+rebuild), look in the inbox for that verification email and click it.**
 
 **The brake**, from the owner's machine with an `aws login` session (full plan first, as always):
 
@@ -344,8 +352,13 @@ Or, faster and with no state change to review, set the cap in the Lambda console
 code back in line. The deploy workflow refuses a plan that changes anything but the image, so it
 will not undo a brake by itself.
 
-**Testing the alert path** (free, about a day): `tofu -chdir=infra/bootstrap apply -var
-budget_alert_test=true` creates `portfolio-alert-test`, a $0.01 budget that alerts on any actual
-spend. Wait for the email (AWS checks a few times a day, so up to about 8 hours), then apply
-without the variable to remove it. It needs month-to-date spend above $0.0001: check it with
-`aws budgets describe-budgets --account-id <id>`. The email subject names the budget.
+**Testing the alert path** (free, minutes once the address is verified):
+`tofu -chdir=infra/bootstrap apply -var budget_alert_test=true` creates `portfolio-alert-test`, a
+$0.01 budget that alerts on any actual spend. A budget created over its threshold sends its alert
+at once (it did, one second after the apply, on 2026-10-26), from `budgets@costalerts.amazonaws.com`
+with the subject "AWS Budgets: Account … has a budget exceeding your alert threshold". If nothing
+arrives, check the inbox for the verification email above before anything else. Then apply without
+the variable to remove the test budget. It needs month-to-date spend above $0.0001: check it with
+`aws budgets describe-budgets --account-id <id>`. To repeat the test, replace the budget with
+`-replace='aws_budgets_budget.alert_test[0]'`; the real budget's notifications are ignored by
+the replace.

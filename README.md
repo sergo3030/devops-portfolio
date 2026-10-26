@@ -52,8 +52,8 @@ flowchart TB
   [How secrets work here](docs/secrets.md), including what this does *not* protect.
 - **Releases and deploys you can follow.** [v0.1.1](https://github.com/sergo3030/devops-portfolio/releases/tag/v0.1.1)
   was built, scanned, approved and verified against the running API ([how](docs/runbook-prod.md#releasing-task-15a-d42)).
-- **Cost under control.** A few cents a month. A concurrency cap that was shown to throttle, and an
-  emergency brake that was applied for real ([cost guards](docs/runbook-prod.md#cost-guards-and-how-each-was-tested-task-18-d47)).
+- **Cost under control.** A few cents a month. A concurrency cap that was shown to throttle, an
+  emergency brake that was applied for real, and a Budget alert that was delivered in a test ([cost guards](docs/runbook-prod.md#cost-guards-and-how-each-was-tested-task-18-d47)).
 - **A teardown I have rehearsed.** The destroy and recreate was run once by hand with timings in the
   runbook, and `just teardown-api`, `just teardown-aws` and `just up-prod` wrap it: each previews the
   full plans before it applies anything ([three levels](docs/runbook-prod.md#teardown-three-levels-task-18a-d48)).
