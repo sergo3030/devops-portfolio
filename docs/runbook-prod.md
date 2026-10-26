@@ -233,7 +233,9 @@ ECR, phase 2 after you confirm, and the `/health` check. The deploy job that the
 approval and can only fail on a repository with no function: **reject it**. The URL is new: change
 `web/.env.production` in a pull request, merge it, then `gh workflow enable synthetic.yml` and run it.
 
-**Level 3 checklist** (by hand, in this order):
+**Level 3 checklist.** The full, current checklist (what to turn off in which state, the README
+banner text, the domain and archive decisions) is in [end-of-life.md](end-of-life.md); the list below
+is the short version:
 
 1. Level 2 done and `verify-clean level2` clean.
 2. Disable the scheduled workflows (`synthetic`, and any drift workflow) so they do not fail forever.
