@@ -11,7 +11,7 @@ this page says what else to do around them, and in what order.
 |---|---|---|---|---|---|
 | **Running** | Site, API, pipelines, AWS roles | A few cents a month | "Live from API", with the version | n/a | n/a |
 | **Paused** (Level 1) | Site and pipelines; no API, no image repository | About nothing | "API offline: showing the saved copy" | `just teardown-api apply` | `just up-prod apply`, then a pull request with the new API URL, then enable `synthetic` |
-| **AWS removed** (Level 2) | Site and pipelines that need no AWS | $0 | The same saved copy | Level 1, then `just teardown-aws apply` | Rebuild the bootstrap root ([runbook](runbook-bootstrap.md)), re-apply `infra/github` for the secrets, then `just up-prod` |
+| **AWS removed** (Level 2) | Site and pipelines that need no AWS | $0 | The same saved copy | Level 1, then `just teardown-aws apply` | [Rebuilding after Level 2](runbook-bootstrap.md#rebuilding-after-level-2-rehearsed-2026-10-26) (rehearsed: about 20 minutes), then `just up-prod` |
 | **Retired** (Level 3) | Only the static site and the code | $0 | The same saved copy | Level 2, then the checklist below | Un-archive, then as for "AWS removed" |
 
 The site works in every state, because it carries its own copy of the content.
@@ -49,10 +49,12 @@ falls back softly, so expect red runs in those workflows, not a blocked reposito
 1. Level 1 first.
 2. `just teardown-aws` to read the plan, then `just teardown-aws apply` in a terminal.
 3. Confirm `just verify-clean level2` is clean.
-4. Remove what pointed at AWS from GitHub, in code: delete `github_actions_secret.aws_account_id`,
-   `github_dependabot_secret.aws_account_id` and the `prod` environment resources from
-   `infra/github`, plan, read the plan, apply. Doing it in code keeps the state honest. An empty
-   `gh secret list` and no `prod` environment are the proof that no AWS access is left.
+4. **Only when retiring** (not when you will rebuild): remove what pointed at AWS from GitHub, in
+   code: delete `github_actions_secret.aws_account_id`, `github_dependabot_secret.aws_account_id` and
+   the `prod` environment resources from `infra/github`, plan, read the plan, apply. **Do this
+   before step 2**, while the state bucket still exists: the github root's state lives in it. Doing it
+   in code keeps the state honest. An empty `gh secret list` and no `prod` environment are the proof
+   that no AWS access is left.
 5. `aws logout --profile portfolio-bootstrap`, delete the local state files of the bootstrap root
    (they hold the alert email), and unset `TF_VAR_budget_alert_email`.
 6. Put the **AWS removed** banner in the README.

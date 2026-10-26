@@ -212,13 +212,38 @@ repository is gone, merges that change the image fail at the push step; that is 
 `TF_VAR_budget_alert_email` to be set. The preview prints the bootstrap `plan -destroy` (with
 `force_destroy` on, so the state bucket can be emptied). `apply` moves the state back to a local file
 (the bucket that holds it is about to be destroyed), applies `force_destroy`, shows the destroy plan,
-destroys after you type `destroy bootstrap`, and runs `verify-clean level2`. **Only the preview has
-been run for real**; the apply path is tested with fake tools and rehearsed in task 20a. If it stops
-after the state move, the state is in `infra/bootstrap/terraform.tfstate`: keep it. If the account had
+destroys after you type `destroy bootstrap`, and runs `verify-clean level2`. **It was run for real
+on 2026-10-26** (task 20a, below). Because the github and prod roots keep their states in the same
+bucket, the script first saves the github root's state to `infra/github/state-backup.tfstate`
+(gitignored) and refuses to go on if that cannot be read; restore it after a rebuild
+(`runbook-bootstrap.md`, "Rebuilding after Level 2"). If the script stops after the state move, the
+state is in `infra/bootstrap/terraform.tfstate`: keep it. If the account had
 a GitHub OIDC provider before this project, set `create_oidc_provider=false` first (it is
 account-wide). Afterwards: `aws logout`, delete the `portfolio-admin` user only if you are leaving the
 project, delete the local state files (they hold the alert email), and check the bill and Cost
 Explorer the next day.
+
+**The 20a rehearsal (2026-10-26)** ran the whole cycle once, with option B (rebuild everything
+afterwards). Times are from the start of each step to its end, and include the owner typing the
+confirmations.
+
+| Step | What happened | Time |
+|---|---|---|
+| Pre-flight | No open PRs or waiting runs; state of all three roots saved locally and checked | 1 min 19 s |
+| Level 1 | `teardown-api apply`: 9 destroyed, `verify-clean level1` clean | 6 min 23 s |
+| Level 2 | `teardown-aws apply`: 19 destroyed, `verify-clean level2` clean | 3 min 25 s |
+| Rebuild the bootstrap root | 19 added with a local backend, then the state migrated to the new bucket, plan clean | 3 min 30 s |
+| Restore the github state | `state push` of the backup, plan "No changes" | 14 s |
+| `up-prod apply` | Phase 1, the build workflow, phase 2, health check (`0.0.0-dev`) | 4 min 2 s |
+| New URL | Pull request, merge, pages rebuild, `synthetic` enabled and passed | about 10 min |
+
+No AWS existed for about eight minutes. What it found: (1) the github and prod states live in the
+state bucket, so Level 2 would have destroyed the github root's state; the script now backs it up and
+the rebuild restores it. (2) The old bucket name was free again immediately. (3) The Budget alert
+contact in User Notifications survived Level 2 and stayed `active`. (4) CI assumed the recreated plan
+role through the new OIDC provider on the next pull request. (5) After the rebuild all three roots
+planned "No changes". Still done by hand: the new function URL, which a stable name in front of the
+function (planned with a domain) would remove.
 
 **`just verify-clean [level1|level2]`** is read-only. It lists what exists by the `portfolio-` prefix
 (Lambda functions, ECR repositories, DynamoDB tables, S3 buckets, log groups, IAM roles and policies,
