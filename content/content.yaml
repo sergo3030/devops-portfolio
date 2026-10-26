@@ -302,7 +302,7 @@ about:
         - text: >-
             Every change is a pull request that must pass linting, tests, secret scanning, security
             scans of the code, the infrastructure and the container image, and an end-to-end test in
-            a real browser. After the merge the image is built, scanned and pushed once, and a
+            a real browser. A release is a tag: the image is built, scanned and pushed once, and a
             deployment waits for my approval. The deploy applies a plan that a script has checked
             changes nothing except the image, then confirms that the live API reports the version it
             just deployed.
