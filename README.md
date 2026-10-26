@@ -18,23 +18,12 @@ running version when the API answers, and the content saved at build time when i
 
 What a visitor touches:
 
-```mermaid
-flowchart LR
-  V([Visitor]) --> S["Static site<br/>GitHub Pages"]
-  S -- "fetch<br/>(CORS: this site only)" --> L["AWS Lambda<br/>FastAPI container<br/>behind a Function URL"]
-  S -.- C[("Saved copy<br/>built into the site")]
-```
+![A visitor opens the static site on GitHub Pages, which shows its saved copy first and then fetches live data from the Function URL and Lambda on AWS](docs/diagrams/visitor.png)
 
 The site works without the API: it renders the saved copy first and swaps in live data if the API
 answers in time. How a change reaches production:
 
-```mermaid
-flowchart TB
-  P["Pull request<br/>lint, tests, scans, plan"] --> M["Merge, then tag a release<br/>build, scan, push by digest"]
-  M --> A{{"Owner approval<br/>(prod environment)"}}
-  A --> D["Deploy<br/>apply the checked plan, verify /health"]
-  D -- "OIDC, no stored keys" --> W[("AWS<br/>ECR, Lambda")]
-```
+![A change goes from a pull request to a merge, a release tag, an image build, the owner's approval and a deploy to AWS, with the workflow that runs each step](docs/diagrams/release.png)
 
 | Part | What | Where |
 |---|---|---|

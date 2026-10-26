@@ -43,6 +43,10 @@ tool-versions:
 docs-check:
     python scripts/check_doc_links.py
 
+# Export the draw.io diagrams in docs/diagrams to PNG (needs the draw.io desktop app)
+diagrams:
+    bash scripts/export-diagrams.sh
+
 # shellcheck for the scripts (same as CI)
 lint-scripts:
     uv run --project tools --locked shellcheck -x -S warning scripts/*.sh
