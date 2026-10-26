@@ -6,7 +6,7 @@ version = "0.0.0"
 description = "Read-only FastAPI service that serves the portfolio's published content"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi==0.146.0",
+    "fastapi==0.149.0",
     "pydantic==2.14.1",
     "uvicorn==0.54.0",
 ]
