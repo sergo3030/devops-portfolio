@@ -30,7 +30,7 @@ answers in time. How a change reaches production:
 
 ```mermaid
 flowchart TB
-  P["Pull request<br/>lint, tests, scans, plan"] --> M["Merge to main<br/>build, scan, push image by digest"]
+  P["Pull request<br/>lint, tests, scans, plan"] --> M["Merge, then tag a release<br/>build, scan, push by digest"]
   M --> A{{"Owner approval<br/>(prod environment)"}}
   A --> D["Deploy<br/>apply the checked plan, verify /health"]
   D -- "OIDC, no stored keys" --> W[("AWS<br/>ECR, Lambda")]

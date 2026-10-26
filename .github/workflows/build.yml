@@ -1,32 +1,12 @@
 name: build
 
-# Builds the API image after a merge to main (image.yml) and offers it for deployment (deploy.yml).
-# The image is tagged sha-<commit> and reports version 0.0.0-dev: a release is a separate workflow
-# (release.yml) that builds the same commit again with its version baked in.
+# Builds the API image from main by hand (Actions, Run workflow, `main`) and pushes it to ECR
+# (image.yml). It does not run on a merge and it offers no deployment: since D55 a deployment
+# comes only from a release (release.yml, which waits for the owner's approval) or from a manual
+# deploy.yml run with a digest. Its one use is `just up-prod`, which needs a first image in a
+# fresh repository. The image is tagged sha-<commit> and reports version 0.0.0-dev.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "app/Dockerfile"
-      - "app/pyproject.toml"
-      - "app/uv.lock"
-      - "app/portfolio_api/**"
-      - ".dockerignore"
-      - "content/content.yaml"
-      - "content/allowed-numbers.txt"
-      - "content/schema/content.schema.json"
-      - "scripts/check_content.py"
-      - "scripts/ecr-image.sh"
-      - "scripts/ecr-public-login.sh"
-      - "scripts/smoke-test-container.sh"
-      - "scripts/retry.sh"
-      - "scripts/install-trivy.sh"
-      - "scripts/scan-image.sh"
-      - ".trivyignore.yaml"
-      - "docker-compose.yml"
-      - ".github/workflows/build.yml"
-      - ".github/workflows/image.yml"
   workflow_dispatch:
 
 permissions:
@@ -47,19 +27,5 @@ jobs:
       commit: ${{ github.sha }}
       version: "0.0.0-dev"
       image_tag: sha-${{ github.sha }}
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-
-  # Every pushed image is offered for deployment. The job waits for the owner's approval in the
-  # protected `prod` environment (see deploy.yml). Rejecting it, or not answering, changes nothing.
-  deploy:
-    name: deploy (prod)
-    needs: build
-    uses: ./.github/workflows/deploy.yml
-    permissions:
-      contents: read
-      id-token: write # passed on to deploy.yml, which trades it for AWS credentials
-    with:
-      digest: ${{ needs.build.outputs.digest }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

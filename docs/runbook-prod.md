@@ -46,11 +46,11 @@ plan shows only what the pull request changes.
 
 ## Building the image (task 14b)
 
-`.github/workflows/build.yml` runs after a merge to `main` that changes the image's inputs (and
-on demand from the Actions tab, from `main`). The list of paths in `build.yml` is exactly what goes
-into the image (D49): a test or a doc change creates no build and no approval, and
-`scripts/check-build-paths.sh` fails in CI if the list and the image ever disagree. It assumes the `portfolio-ecr-push` role, which
-trusts only `refs/heads/main`, so it cannot run from a branch. It builds with Compose, runs the
+A release builds its own image (see "Releasing"). `.github/workflows/build.yml` builds a
+development image on demand only (Actions, Run workflow, from `main`), and since D55 it does **not**
+run on a merge and offers no deployment; its one use is `just up-prod`, which needs a first image in a
+fresh repository. Either way the image is built by `image.yml`, which assumes the
+`portfolio-ecr-push` role, which trusts only `refs/heads/main`, so it cannot run from a branch. It builds with Compose, runs the
 smoke test, and pushes **the image that passed** as `sha-<full commit hash>`. The tag is the
 only one: the repository's tags are immutable. If the commit already has an image, the job
 reuses it instead of rebuilding (builds are not reproducible bit for bit, so the first image
@@ -71,9 +71,11 @@ itself are the rest of task 15.
 
 ## Deploying (task 15, D41)
 
-After every image push, `build.yml` calls `deploy.yml`, and the job **`deploy (prod)` waits for your
-approval** in the Actions run (Review deployments, environment `prod`, `main` only). Rejecting it,
-or not answering, changes nothing. A newer pending approval replaces an older one.
+A deploy happens only from a release (`release.yml` calls `deploy.yml` after the image is built) or
+from a manual run of `deploy.yml` with a digest (which is also the rollback). Either way the job
+**`deploy (prod)` waits for your approval** in the Actions run (Review deployments, environment `prod`,
+`main` only). Rejecting it, or not answering, changes nothing. Merges to `main` start no build and
+ask for no approval (D55).
 
 After you approve, it:
 
@@ -206,7 +208,7 @@ Recreate after Level 1 with `just up-prod` (also previews by default).
 destroy again (a plan saved before step 1 would be stale), shows it, and destroys only after you type
 `destroy prod`. Then it disables the daily `synthetic` workflow (it would fail every day with the
 API gone) and runs `just verify-clean level1`. The site keeps working with the saved copy. While the
-repository is gone, merges that change the image fail at the push step; that is expected.
+repository is gone, a release or a manual `build` run fails at the push step; that is expected.
 
 **Level 2** (`teardown-aws.sh`). It first requires `verify-clean level1` to pass, and
 `TF_VAR_budget_alert_email` to be set. The preview prints the bootstrap `plan -destroy` (with

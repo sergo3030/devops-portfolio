@@ -28,8 +28,6 @@ test-scripts:
     bash scripts/test-check-site-link.sh
     bash scripts/test-verify-clean.sh
     bash scripts/test-teardown.sh
-    bash scripts/test-check-build-paths.sh
-    bash scripts/check-build-paths.sh
     bash scripts/test-tool-pins.sh
     bash scripts/check-tool-pins.sh
 

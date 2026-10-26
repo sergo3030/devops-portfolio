@@ -25,7 +25,7 @@ Other sources of flakiness that are handled on purpose:
 | The Pages CDN needs a minute to catch up after a deploy | `scripts/verify-site.sh` retries (nine attempts, ten seconds apart) |
 | A cold Lambda takes 4 to 5 seconds | The site waits eight seconds; `synthetic` and the deploy check retry |
 | The Trivy vulnerability database download | Retried, from two mirrors |
-| A rejected or unapproved deploy leaves a run "waiting" | Documented in `runbook-prod.md`; the next build queues behind it |
+| A rejected or unapproved deploy leaves a run "waiting" | Only releases and manual deploys ask for approval now (D55), so there is little to leave waiting |
 
 A red run on `main` is investigated, not re-run blindly. A re-run is fine for a known flake
 that has a recorded cause.

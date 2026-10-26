@@ -58,11 +58,7 @@ jobs:
           bash scripts/test-check-site-link.sh
           bash scripts/test-verify-clean.sh
           bash scripts/test-teardown.sh
-          bash scripts/test-check-build-paths.sh
           bash scripts/test-tool-pins.sh
-
-      - name: The build paths match what goes into the image
-        run: bash scripts/check-build-paths.sh
 
       - name: Each tool that Dependabot cannot update has one pinned version
         run: bash scripts/check-tool-pins.sh
