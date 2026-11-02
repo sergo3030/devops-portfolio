@@ -528,7 +528,7 @@ wheels = [
 
 [[package]]
 name = "check-jsonschema"
-version = "0.38.2"
+version = "0.39.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -537,14 +537,14 @@ dependencies = [
     { name = "requests" },
     { name = "ruamel-yaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/43/f0cb0cc7e68421c5b0be6bca74d37e2daad915ee74edef42c4af21aaef19/check_jsonschema-0.38.2.tar.gz", hash = "sha256:967176475f9eddd2809baabf7e0d157f7eb482b06ac002a29a79788c0c8a5a90", size = 444493, upload-time = "2026-09-23T16:23:22.385Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/0a/3d9da039817af8344be3e5502457c91b84dfd774792f48cef434c81af15e/check_jsonschema-0.39.0.tar.gz", hash = "sha256:33340a2f885e207411c7a7d1db0a052ba24a4e58c92a47f54231e4a128af2764", size = 504387, upload-time = "2026-10-26T20:20:27.675Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/15/286e11f294c86616202f413df069dc6625c0085fc70d32b3e5e703236a17/check_jsonschema-0.38.2-py3-none-any.whl", hash = "sha256:8edefe154b7117962f2e88318f315fc4bb9615827f932b37cb676a8d42a3a286", size = 427987, upload-time = "2026-09-23T16:23:20.607Z" },
+    { url = "https://files.pythonhosted.org/packages/06/e9/644e47c8b929f14cbda2b6779be047caa2098cc06f8bd7e04e8c62416cdc/check_jsonschema-0.39.0-py3-none-any.whl", hash = "sha256:14ce5c94871c551268ea948ffe21e9f1464dc48fb20bf9a4c13deeaaf756cf9b", size = 485805, upload-time = "2026-10-26T20:20:25.662Z" },
 ]
 
 [[package]]
 name = "checkov"
-version = "3.3.29"
+version = "3.3.30"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiodns" },
@@ -592,9 +592,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "yarl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7b/2b/9bc703006199045a2f2b148731e563e62c97be67ef009330ed0843cccb73/checkov-3.3.29.tar.gz", hash = "sha256:ad9f8606a6de0756be93edd5588e3365486eb53a3f68247396a68b02929353ce", size = 1016122, upload-time = "2026-10-13T11:40:05.009Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/ed/9ff6eb2510d68671640ee7f305f560d260edd918ffea1bf35c7c788974ef/checkov-3.3.30.tar.gz", hash = "sha256:d827f79e25797d0a54a6643683869dea9893ea06e16e1b81635c9d21c1f0f4a4", size = 1016814, upload-time = "2026-10-20T13:00:19.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/4a/26ecbf2abac34993b7dba06379c6b8a03f078323856a917ed47370610a67/checkov-3.3.29-py3-none-any.whl", hash = "sha256:9a8b3918788faf8e18b181d826d284744b22b9d99c53cf1b67a2e84f0596796f", size = 2330210, upload-time = "2026-10-13T11:40:02.495Z" },
+    { url = "https://files.pythonhosted.org/packages/06/ed/a8bfc06b6091b59984804e5d794890d91a0011041aeadfb429d1bf53520e/checkov-3.3.30-py3-none-any.whl", hash = "sha256:32c3d6a808399f3fd6ec83e68a337050d17f019336f4d8f3b23aae469ba79408", size = 2330499, upload-time = "2026-10-20T13:00:16.988Z" },
 ]
 
 [[package]]
@@ -1344,8 +1344,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "actionlint-py", specifier = "==1.7.12.25" },
-    { name = "check-jsonschema", specifier = "==0.38.2" },
-    { name = "checkov", specifier = "==3.3.29" },
+    { name = "check-jsonschema", specifier = "==0.39.0" },
+    { name = "checkov", specifier = "==3.3.30" },
     { name = "shellcheck-py", specifier = "==0.11.0.1" },
     { name = "zizmor", specifier = "==1.31.1" },
 ]
