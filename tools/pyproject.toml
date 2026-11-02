@@ -5,8 +5,8 @@ description = "Python command line tools that CI and `just` run. Locked, so inst
 requires-python = ">=3.13"
 dependencies = [
   "actionlint-py==1.7.12.25",
-  "check-jsonschema==0.38.2",
-  "checkov==3.3.29",
+  "check-jsonschema==0.39.0",
+  "checkov==3.3.30",
   "shellcheck-py==0.11.0.1",
   "zizmor==1.31.1",
 ]
