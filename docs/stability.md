@@ -96,6 +96,15 @@ ID in `dependency-review.yml`, and only that one: any other high finding in `too
 the review. **Revisit** when a checkov release stops depending on `ecdsa`, or when the advisory
 gets a fix: check it whenever Dependabot bumps checkov.
 
+**One override.** `checkov` pins `asteval==1.0.6`, in every release including the newest (3.4.3), and
+that version has two sandbox escapes (GHSA-89v8-rhwq-hf77 and GHSA-9w56-46f6-3qhx, fixed in 1.0.9).
+Nothing newer of checkov can take the fix, so `tools/pyproject.toml` overrides the pin with
+`asteval>=1.0.9` and the lock file holds 1.0.10. Only that package differs from what checkov asks
+for. The sandbox matters only for untrusted expressions; checkov evaluates the repository's own
+files, in CI, with no secrets. The check that this works is the `iac (checkov)` job, which runs
+checkov against the whole repository. **Revisit** when a checkov release depends on asteval 1.0.9 or
+newer: remove the override and run `uv lock`.
+
 To run a Python tool: `uv run --project tools --locked <tool> ...`. Checkov runs as a module
 (`python -m checkov.main`) because its console script is a plain `.py` file that Windows cannot
 launch.
