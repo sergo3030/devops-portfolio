@@ -1,35 +1,358 @@
+/* The top of the page: the page keys, then the board. In the middle of the board is
+   one big module, the device: name, role, a screen with the summary, and the profile keys. Skill
+   modules sit on both sides of it on a wide screen, wired to it with printed traces. */
 .header {
-  margin-block-end: var(--space-5);
+  padding-block: var(--space-4) var(--space-5);
+}
+
+.wall {
+  max-inline-size: var(--wall-width);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+/* Everything on the board powers on once, after the boot screen has gone: it rises into place,
+   one piece after the other. Each piece sets --order; the delay is the boot time plus a short
+   step per piece. Only opacity and transform move. */
+.top,
+.device,
+.chip {
+  animation: power var(--dur-enter) var(--ease) calc(var(--boot) + var(--order, 0) * var(--step))
+    both;
+}
+
+@keyframes power {
+  from {
+    opacity: 0;
+    transform: translateY(0.625rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.top {
+  --order: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.pages {
+  margin-inline-start: auto;
+}
+
+.pages ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pageLink {
+  composes: key from '../styles/parts.module.css';
+}
+
+/* The key of the page being shown is pressed in, with a lit LED in front of it. */
+.pageLink[aria-current='page'] {
+  gap: var(--space-2);
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-key-down);
+  transform: translateY(2px);
+}
+
+.pageLink[aria-current='page']::before {
+  content: '';
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* ---- the board ---- */
+.board {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 62rem) {
+  .withModules {
+    grid-template-columns: 14.5rem minmax(0, 1fr) 14.5rem;
+    column-gap: 4rem;
+  }
+}
+
+.side {
+  display: none;
+}
+
+@media (min-width: 62rem) {
+  .side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+}
+
+/* A skill module: a title, three skills, a scale, and a trace that runs to the device. Its LED is
+   off: the module is decoration, so nothing on it is live. */
+.chip {
+  composes: module from '../styles/parts.module.css';
+  position: relative;
+  padding: var(--space-3) 1.25rem;
+}
+
+.chipHead {
+  composes: label from '../styles/parts.module.css';
+}
+
+.chipHead span::before {
+  content: attr(data-text);
+}
+
+.chipItems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.chipItems span::before {
+  content: attr(data-text);
+}
+
+.led {
+  composes: led from '../styles/parts.module.css';
+}
+
+.ledOn {
+  composes: led lit from '../styles/parts.module.css';
+}
+
+.ticks {
+  composes: ticks from '../styles/parts.module.css';
+  display: block;
+  margin-block-start: var(--space-2);
+}
+
+/* The modules power on from the top down, left side first. */
+.left .chip:nth-child(1) {
+  --order: 2;
+}
+
+.left .chip:nth-child(2) {
+  --order: 3;
+}
+
+.left .chip:nth-child(3) {
+  --order: 4;
+}
+
+.right .chip:nth-child(1) {
+  --order: 3;
+}
+
+.right .chip:nth-child(2) {
+  --order: 4;
+}
+
+.right .chip:nth-child(3) {
+  --order: 5;
+}
+
+/* The trace from a module to the device. It draws itself once, then a short orange signal runs
+   along it twice and rests, so the hero ends still. */
+.wire {
+  position: absolute;
+  inset-block-start: 50%;
+  inline-size: 4rem;
+  block-size: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--color-trace);
+  animation: draw var(--dur-enter) var(--ease) calc(var(--boot) + 400ms) both;
+}
+
+.left .wire {
+  inset-inline-start: 100%;
+  transform-origin: left;
+}
+
+.right .wire {
+  inset-inline-end: 100%;
+  transform-origin: right;
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.wire::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inline-size: 30%;
+  background: var(--color-accent);
+  animation: signal-right 3200ms var(--ease) calc(var(--boot) + 1500ms) 2 both;
+}
+
+.left .wire::after {
+  inset-inline-start: 0;
+}
+
+.right .wire::after {
+  inset-inline-end: 0;
+  animation-name: signal-left;
+}
+
+@keyframes signal-right {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  60%,
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes signal-left {
+  0% {
+    transform: translateX(100%);
+  }
+
+  60%,
+  100% {
+    transform: translateX(-340%);
+  }
+}
+
+/* ---- the device ---- */
+.device {
+  --order: 1;
+  --module-radius: var(--radius-device);
+  composes: module from '../styles/parts.module.css';
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .device {
+    padding: var(--space-4) 2rem 2rem;
+  }
+}
+
+/* The role and the country are a printed label above the name, though they come after it in the
+   page, so the page is read name first. */
+.meta {
+  --label-space: var(--space-2);
+  composes: label from '../styles/parts.module.css';
+  order: -1;
+  justify-content: space-between;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .name {
-  margin-block: 0 var(--space-1);
-  font-size: var(--text-xl);
-  line-height: 1.2;
-}
-
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
   margin-block: 0 var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
+.line {
+  display: block;
+}
+
+.screen {
+  composes: screen from '../styles/parts.module.css';
+  flex: 1;
+  padding: var(--space-3);
+  font-size: var(--text-md);
+  line-height: 1.625;
+}
+
+/* The summary is revealed top to bottom in steps, like a screen being drawn; it is in the page all
+   along, so a reader and the page's text search find it at once. The cursor blinks six times and
+   then stays on. */
 .summary {
-  margin-block: 0 var(--space-3);
+  margin: 0;
+  animation: scan 1600ms steps(24) calc(var(--boot) + 900ms) both;
 }
 
-.more {
-  margin-block: var(--space-3) 0;
+@keyframes scan {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+.summary::after {
+  content: '';
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.95em;
+  margin-inline-start: var(--space-1);
+  background: var(--color-accent);
+  vertical-align: -0.12em;
+  animation: cursor 1s steps(1) calc(var(--boot) + 2500ms) 6;
+}
+
+@keyframes cursor {
+  50% {
+    opacity: 0;
+  }
 }
 
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: 0;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
   padding: 0;
   list-style: none;
+}
+
+.links li {
+  flex: none;
+}
+
+/* The two profile keys are the page's main action, so both are orange. They are one pair: the same
+   size (44 px tall, at least 128 px wide) and 16 px apart. */
+.linkKey {
+  --key-padding: 0.75rem 1.5rem;
+  --key-size: 1rem;
+  --key-weight: 600;
+  composes: key accent from '../styles/parts.module.css';
+  min-inline-size: 8rem;
 }

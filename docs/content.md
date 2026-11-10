@@ -27,7 +27,8 @@ reads the exact wording, and only then is `approved` set to `true`. The publishe
 section and paragraph carries `approved`, the owner reads the exact wording before it is set to
 `true`, and the published build contains approved parts only. A title that is not approved is left
 out (the site falls back to "About this project"), and an `about` with no approved paragraph is not
-published at all. The text avoids digits (numbers are written as words), so it needs no new entry
+published at all. The first section is shown as the summary box (its first paragraph is the summary,
+the others are small notes) and every other section as a small card (see `docs/web.md`). The text avoids digits (numbers are written as words), so it needs no new entry
 in `allowed-numbers.txt`. The field is optional in the published content, because the site and the
 API are deployed separately (D50).
 

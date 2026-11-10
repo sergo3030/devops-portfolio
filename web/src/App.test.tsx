@@ -54,8 +54,22 @@ describe('App', () => {
     expect(within(region).getByText('It worked.')).toBeInTheDocument();
   });
 
-  it('shows the About section with its own anchor and a link to it in the header', () => {
+  it('keeps the About section off the portfolio view and links to it from the header', () => {
     render(<App content={withAbout} />);
+    expect(screen.queryByRole('region', { name: 'About this project' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Scenario' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Experience' })).toBeInTheDocument();
+    const pages = screen.getByRole('navigation', { name: 'Pages' });
+    const portfolio = within(pages).getByRole('link', { name: 'Portfolio' });
+    const about = within(pages).getByRole('link', { name: 'About this project' });
+    expect(portfolio).toHaveAttribute('aria-current', 'page');
+    expect(about).toHaveAttribute('href', '#about');
+    expect(about).not.toHaveAttribute('aria-current');
+    expect(about).not.toHaveAttribute('target');
+  });
+
+  it('shows the About page with its own anchor, and none of the portfolio sections', () => {
+    render(<App content={withAbout} page="about" />);
     const region = screen.getByRole('region', { name: 'About this project' });
     expect(region).toHaveAttribute('id', 'about');
     expect(
@@ -65,22 +79,59 @@ describe('App', () => {
     ).toEqual(['Why', 'How']);
     expect(within(region).getByText('Because it is a good example.')).toBeInTheDocument();
     expect(within(region).getByText('With checks.')).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: 'About this project' });
-    expect(link).toHaveAttribute('href', '#about');
-    expect(link).not.toHaveAttribute('target');
+    expect(screen.queryByRole('region', { name: 'Experience' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Test Person' })).toBeInTheDocument();
+    const pages = screen.getByRole('navigation', { name: 'Pages' });
+    expect(within(pages).getByRole('link', { name: 'About this project' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(pages).getByRole('link', { name: 'Portfolio' })).not.toHaveAttribute(
+      'aria-current',
+    );
   });
 
-  it('shows no About section and no link to it when none is published', () => {
+  it('shows the first About section as the summary, with the diagram before the cards', () => {
+    render(<App content={withAbout} page="about" />);
+    const region = screen.getByRole('region', { name: 'About this project' });
+    expect(within(region).getByRole('heading', { level: 3, name: 'Why' })).toBeInTheDocument();
+    expect(within(region).getByRole('group', { name: 'Scenario' })).toBeInTheDocument();
+    expect(within(region).getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(within(region).getByRole('heading', { level: 3, name: 'How' })).toBeInTheDocument();
+  });
+
+  it('names the tab after the page, and moves focus to the content when the page changes', () => {
+    const { container, rerender } = render(<App content={withAbout} />);
+    const base = document.title;
+    rerender(<App content={withAbout} page="about" />);
+    expect(document.title).toBe(`About this project | ${base}`);
+    expect(container.querySelector('[tabindex="-1"]')).toHaveFocus();
+    rerender(<App content={withAbout} />);
+    expect(document.title).toBe(base);
+  });
+
+  it('shows no diagram when there is no About section', () => {
+    render(<App content={sampleContent} />);
+    expect(screen.queryByRole('group', { name: 'Scenario' })).not.toBeInTheDocument();
+  });
+
+  it('shows no About page and no navigation when none is published', () => {
     for (const about of [undefined, null, { title: 'About this project', sections: [] }]) {
-      const { unmount } = render(<App content={{ ...sampleContent, about }} />);
+      const { unmount } = render(<App content={{ ...sampleContent, about }} page="about" />);
       expect(screen.queryByRole('region', { name: 'About this project' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'About this project' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: 'Pages' })).not.toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Experience' })).toBeInTheDocument();
       unmount();
     }
   });
 
-  it('names the About section with a default when the title is not published', () => {
-    render(<App content={{ ...withAbout, about: { sections: withAbout.about!.sections } }} />);
+  it('names the About page with a default when the title is not published', () => {
+    render(
+      <App
+        content={{ ...withAbout, about: { sections: withAbout.about!.sections } }}
+        page="about"
+      />,
+    );
     expect(screen.getByRole('region', { name: 'About this project' })).toBeInTheDocument();
   });
 
@@ -106,6 +157,18 @@ describe('skills filter', () => {
     expect(screen.queryByText('Docker')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Containers' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('1 skill shown');
+  });
+
+  it('leaves an empty slot, without text, for every skill the filter hides', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App content={sampleContent} />);
+    expect(container.querySelectorAll('li[aria-hidden="true"]')).toHaveLength(0);
+
+    await user.type(screen.getByRole('searchbox', { name: 'Filter skills' }), 'graf');
+    const slots = container.querySelectorAll('li[aria-hidden="true"]');
+    expect(slots).toHaveLength(1);
+    expect(slots[0]).toBeEmptyDOMElement();
+    expect(screen.queryByText('Prometheus')).not.toBeInTheDocument();
   });
 
   it('says so when nothing matches, and recovers when the box is cleared', async () => {

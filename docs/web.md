@@ -7,7 +7,7 @@ time, and the page swaps in live data from the API when it answers (see "Live da
 ## Live data (D32)
 
 `Root` renders the saved copy at once, then `useLiveContent` fetches `/content`, then `/health`,
-with one 8 s deadline (D44). The line at the bottom of the page says what happened:
+with one 8 s deadline (D44). A bar that stays at the foot of the screen (it never moves the content) says what happened:
 
 | State | When | Line |
 |---|---|---|
@@ -30,8 +30,13 @@ executions, and on a cold start two requests at once would use both for one visi
 
 ## The About section (task 19b, D50)
 
-`About` renders `content.about` as the last section, with its own anchor (`#about`) and a link to it
-in the header. It renders nothing until at least one section is published. The field is optional
+`About` renders `content.about` as **its own page**, not as a section of the portfolio. The address
+`#about` opens it (`page.ts`, read with `useSyncExternalStore`), and any other address opens the
+portfolio. The header has two links, Portfolio and About this project, with the current one marked
+`aria-current="page"`. When the view changes the content takes focus, the tab title names the page,
+and the window scrolls to the content if the visitor was below it. `App` stays pure: the view is a
+`page` prop, and `Root` reads the address. `About` renders nothing, and the header shows no links,
+until at least one section is published. The field is optional
 everywhere on purpose: the site and the API deploy independently, so an API that is one version
 behind serves content without `about`. When live content has none, `keepAbout` keeps the saved
 copy's section, so the page does not lose it and does not call a harmless difference an outage. The
@@ -91,12 +96,18 @@ that arrives at run time.
 ```
 web/
   index.html           %TITLE%, %DESCRIPTION% and %CSP% are filled at build time (vite.config.ts)
+  public/              the tab icon: favicon.svg, favicon-32.png and apple-touch-icon.png
   scripts/             bundle size budget check
   src/
     styles/            tokens.css (the design tokens) and global.css
     App.tsx            a pure function of its props: { content }
-    components/        Header, Experience (timeline, newest first), Skills (text filter),
-                       CaseStudies (renders nothing until one is published), Languages, Section
+    assets/            the three fonts, self-hosted (see "Design"); steel-corrugated.png and the
+                       Big Shoulders font are left from an earlier design and are no longer used
+    components/        Header (the device and the side modules), Boot (the start-up screen),
+                       Experience (timeline, newest first), Skills (text filter), CaseStudies
+                       (renders nothing until one is published), Languages, Section
+    styles/parts.module.css   the parts the board is made of (module, label, LED, key, well,
+                       screen); components take them with `composes`
     lib/               formatPeriod, newestFirst, filterSkills (plain functions, unit-tested)
     fixtures.ts        made-up content for tests
     content.ts         loads the embedded snapshot
@@ -113,6 +124,126 @@ web/
 - Page title, description and the Content-Security-Policy come from the content snapshot and
   the API origin at build time, so no public text skips the approval gate.
 - Bundle budget: 90 KB JavaScript and 15 KB CSS, gzipped. `npm run check:size` fails above it.
+
+## Design: Warm circuit board
+
+A greige board with a faint dot grid. Everything on it is a raised module lit from the top left, a
+dark screen, a keycap, an LED, or a printed trace, and there is one accent, a burnt orange. It follows
+a retro-computing landing page the owner chose (the Zajno "vector computer" shot), in warm instead of
+cool greys. The published text is unchanged: the design adds no copy (the start-up screen has no
+words). The colours, shadows and sizes are in `tokens.css`; the dark scheme turns the board into warm
+charcoal and lightens the orange.
+
+- **Fonts (self-hosted, SIL Open Font License 1.1, licences beside them in `src/assets/fonts/`):**
+  Saira Semi Condensed, weight 700 only (the name, headings, job titles and the diagram's station
+  names; its squared curves echo the rounded-square modules and keys), Figtree (body) and JetBrains
+  Mono (labels, dates, the skill keys, the screen and the state labels). Latin subsets, 18 KB, 20 KB
+  and 40 KB. The page's policy allows fonts only from its own server, which is why the files are in
+  the repository. Bricolage Grotesque, the display font of the two earlier designs, was replaced on
+  2026-11-10: its editorial shapes did not fit hardware panels (the owner's call).
+- **Parts (`styles/parts.module.css`):** a *module* is a raised plate (18 px corners), a *label* is a
+  small mono line in the case the text is written in, an *LED* is off or orange (no glow; steady, except the status
+  bar's LED, which pulses softly while the API is live; lit only where something is live, current or
+  working), a *key* moves down when pressed (36 px tall, a
+  hero key 44), a *well* is sunk into the board, and a *screen* is dark glass with light mono text. A
+  component that needs a part to differ sets the part's custom property (`--key-padding`,
+  `--module-radius` and the others listed at the top of `parts.module.css`). It must not override the
+  part's own properties: the part's stylesheet can load later, and the override is lost without a
+  warning (this happened once and was fixed on 2026-11-10).
+- **Orange and text:** orange is a signal colour (LEDs, traces, the request). As a fill it is only
+  2.5:1 on the board, so text on an orange key uses the deeper orange `#b4501a` with light ink
+  (4.8:1). Muted text is `#57524a`, 4.5:1 or more on every surface. A real-browser axe run (contrast
+  included) found nothing on the home page and the About page in light, dark and at 390 px.
+- **Layout:** the header, the body and the status bar share one width (80rem). The header is the page
+  keys, then the board: one big module, the *device* (role and country, the name on
+  two lines, a screen with the summary, and the two profile keys), with up to six skill modules beside
+  it from 62rem, wired to it by printed traces. The modules are made from the first six skill groups
+  that have more than one skill. From 62rem the experience sits beside the skills and languages.
+  The About page is a summary module, the diagram on a full-width darker band, and small modules.
+- **The side modules:** decoration that repeats the Skills section. They are hidden from assistive
+  technology, and their words are drawn from data attributes by the stylesheet, so a screen reader
+  does not read them twice and a search for a skill finds it once.
+- **Skills filter:** a hidden skill leaves an empty dashed slot behind, so the shape of the whole
+  list stays visible. The slots are decorative and hidden from screen readers.
+- **Profile keys:** both are orange (the owner asked earlier for the two to match).
+- **Motion:** one start-up. A boot screen (a logo and a bar of ticks) covers the page for 1.5 s and
+  fades; then the modules rise in one by one, the traces draw themselves, the summary is revealed on
+  the screen from top to bottom, a short orange signal runs along each trace twice, and the cursor
+  blinks six times and stays on. Then the page is still.
+  The boot screen and every entrance are CSS only (no script), so the page is complete without them;
+  the boot screen never blocks a click, and its length is `--boot` in `tokens.css`. Reduced motion
+  removes the boot screen and every animation, pseudo-elements included. No inline styles (the policy
+  forbids them): the order of the modules is set with `:nth-child` rules. Timing and easing are tokens:
+  one curve, 150 ms press, 500 ms entrance, 60 ms step.
+- **Polish pass (2026-11-10, with the `unslop` skill):** spacing moved onto the 4 px grid, shadows
+  made neutral (no glow, no coloured shadow), labels set in sentence case with 0.02em tracking (the
+  keys now read LinkedIn and GitHub), weights capped (display 700, everything else 400 to 600), radii
+  set by the nested-radius rule, loops removed. Left as the owner's choices: the two equal orange
+  profile keys, the side modules and traces, and the Saira Semi Condensed 700 display weight.
+- **Tab icon:** a keycap with a squared S and one orange LED, drawn as `public/favicon.svg` (16 to
+  128 px tested). The SVG carries a dark-theme rule, so on a dark browser it becomes a light keycap
+  with a dark S. `favicon-32.png` and `apple-touch-icon.png` (180 px, no rounded corners, light
+  variant) are fallbacks for browsers without SVG icons. All three are same-origin, so the page's
+  `img-src 'self'` allows them, and declaring them stops the browser asking for `/favicon.ico`.
+- **Known limit:** resizing the window across 62rem shows and hides the side modules, and they power
+  on again when they return.
+
+## The About layout and the architecture diagram
+
+`About` shows the **first** section of `about` as the summary box: its first paragraph is the
+summary, and any further paragraphs of that section are small notes under it. Every other section is
+a small card, so keep them to a sentence or two. There is no schema field for this: it is a
+convention, so the order in `content.yaml` matters.
+
+`ArchitectureDiagram` (between the summary box and the cards, inside `About`, so it disappears with
+it) is a station map of how a request travels, one step at a time. The request line runs from the
+client through GitHub Pages and a content fork to the Function URL and the Lambda service, then into
+one box, the Lambda container, which holds six numbered steps: the Web Adapter and the FastAPI
+layers (security headers, the read-only check, CORS, the router, and the content in memory). It has
+four stories (cold start and request, warm request, POST refused, start-up failure), a Lambda phase
+indicator (Init, Invoke, Idle, Shutdown), Restart, Back, Replay (the current step) and Next buttons, a
+step slider, a legend of the states, and a table with the state of each component. The map is drawn as SVG in the site's own style.
+
+- **Data:** `components/architecture.ts` holds the stories. A step moves a dot along a path, says what
+  happened, and lists only the states that changed, so adding a story means adding steps there.
+  `components/metro.ts` holds the map's geometry; the dot also passes GitHub Pages and the fork on
+  the way from the client to the Function URL, and the container's front door on the way in.
+- **Look:** the card is a module. The stories are keys (the chosen one stays pressed in, with a lit
+  LED), the phases are small mono chips (the active one is a dark screen chip), and the buttons sit
+  on a dark screen with the slider's groove beneath. Back, Restart and the rest keep their names.
+- **Layout:** from 62rem the map is one wide picture: the line along the top, the container box on
+  the right, and the grey lines around the request path (the site's Pages workflow, the deploy line
+  that splits to both the Function URL and the Lambda, CloudWatch Logs, and a cost guard note). From
+  75rem the controls and the words about the step sit in a column beside the picture, so the whole
+  card (stories, phases, map and controls) fits one screen and the words can be read while the dot
+  moves; a short screen shrinks the map further. From 62rem to 75rem the controls sit above it. Below 62rem a second, tall picture is used (one column,
+  without the grey lines, which become a short list under it). Both pictures are drawn from the same
+  data, so the dot moves in both.
+- **States:** each stop shows its state label in a pill. A stop that is not running has a dashed
+  outline, a ready one is filled grey, a working one is filled orange (and flickers like an LED),
+  and an error is filled dark with a cross. The words, the legend and the table say the same, so
+  colour is never the only signal.
+- **The request:** a small envelope in a round orange badge that tilts and sends out a ring while it
+  travels. The request line is a light trace in a groove, and a short orange signal runs along it all
+  the time; reduced motion hides it.
+- **Motion:** nothing moves by itself, and there is no auto-play. The visitor steps with Next and
+  Back or the slider. Next and Replay send the request dot along the path of the step (the dot also
+  passes GitHub Pages, the fork and the container's front door); Back, Restart and the slider only show the
+  step. Next is the orange main button. The dot is skipped for a visitor who prefers reduced motion. It
+  is moved through the element's style object, not a style attribute in the markup, because the
+  page's policy forbids inline styles.
+- **No jumping:** the caption, the pills and the table rows have fixed minimum sizes. The layout was
+  measured across every step of every story at 768, 1024, 1280 and 1440 px (no change) and at
+  390 px (about 10 px of change in the state table).
+- **Facts:** the layer order, the refusal codes, the adapter settings and the 8 s limit were checked
+  against the repository and the Lambda Web Adapter documentation. The deploy
+  line follows the real workflows (release tag, image build, ECR, OIDC role, tofu apply) and the
+  Function URL is created by `infra/prod/lambda.tf`. Estimates that were not checked are left out of
+  the public text. The cold start of about 4 s was measured on this project
+  (`docs/runbook-prod.md`, "Cold start").
+- **Wording:** it is public text that is not in `content.yaml`, so change it only with the owner's
+  approval. The words on the map (stop names, the fork note, "Cost guard", "Saved copy, if the API
+  is offline") are new and not yet approved.
 
 ## Deploy (task 13, D33)
 

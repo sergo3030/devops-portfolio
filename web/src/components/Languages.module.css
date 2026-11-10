@@ -1,8 +1,20 @@
+/* Each language is a small module: the name, nothing else. */
 .list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.socket {
+  --module-radius: 0.75rem;
+  composes: module from '../styles/parts.module.css';
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
 }

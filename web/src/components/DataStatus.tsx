@@ -8,11 +8,14 @@ export function DataStatus({ source }: Props) {
   if (source.kind === 'none') return null;
   return (
     <footer className={styles.footer}>
-      <p role="status" className={source.kind === 'offline' ? styles.offline : styles.live}>
-        {source.kind === 'live'
-          ? `Live from API${source.version ? ` · version ${source.version}` : ''}`
-          : 'API offline: showing the saved copy'}
-      </p>
+      <div className={styles.inner}>
+        <p role="status" className={source.kind === 'offline' ? styles.offline : styles.live}>
+          <i className={source.kind === 'live' ? styles.ledOn : styles.led} aria-hidden="true" />
+          {source.kind === 'live'
+            ? `Live from API${source.version ? ` · version ${source.version}` : ''}`
+            : 'API offline: showing the saved copy'}
+        </p>
+      </div>
     </footer>
   );
 }

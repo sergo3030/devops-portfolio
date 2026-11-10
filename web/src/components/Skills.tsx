@@ -16,9 +16,12 @@ export function Skills({ groups }: Props) {
   return (
     <Section heading="Skills">
       <div className={styles.filter}>
-        <label htmlFor={inputId}>Filter skills</label>
+        <label htmlFor={inputId} className={styles.filterLabel}>
+          Filter skills
+        </label>
         <input
           id={inputId}
+          className={styles.filterInput}
           type="search"
           value={query}
           onChange={(event) => {
@@ -31,18 +34,25 @@ export function Skills({ groups }: Props) {
       <p role="status" className={styles.count}>
         {count === 0 ? 'No skills match.' : `${count} ${count === 1 ? 'skill' : 'skills'} shown`}
       </p>
-      {visible.map((group) => (
-        <div key={group.category} className={styles.group}>
-          <h3 className={styles.category}>{group.category}</h3>
-          <ul className={styles.items}>
-            {group.items.map((item) => (
-              <li key={item} className={styles.item}>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {visible.map((group) => {
+        const total = groups.find((original) => original.category === group.category)?.items.length;
+        const hidden = Math.max(0, (total ?? group.items.length) - group.items.length);
+        return (
+          <div key={group.category} className={styles.group}>
+            <h3 className={styles.category}>{group.category}</h3>
+            <ul className={styles.items}>
+              {group.items.map((item) => (
+                <li key={item} className={styles.item}>
+                  {item}
+                </li>
+              ))}
+              {Array.from({ length: hidden }, (_, slot) => (
+                <li key={`ghost-${String(slot)}`} className={styles.ghost} aria-hidden="true" />
+              ))}
+            </ul>
+          </div>
+        );
+      })}
     </Section>
   );
 }

@@ -1,0 +1,766 @@
+/* The architecture card: a station map drawn as a trace on the board. The request line is a light
+   trace in a groove with an orange signal running along it; the container is one box with the steps
+   inside it. Boxes keep a fixed size so nothing jumps while the story plays. State is never colour
+   alone: a dashed outline, a fill, a cross, and the words. */
+.panel {
+  composes: module from '../styles/parts.module.css';
+  padding: var(--space-4);
+}
+
+.scenarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.scenario {
+  --key-font: var(--font-body);
+  --key-weight: 600;
+  composes: key from '../styles/parts.module.css';
+}
+
+/* The chosen story stays pressed in, with a lit LED in front of it. */
+.scenario[aria-pressed='true'] {
+  gap: var(--space-2);
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-key-down);
+  transform: translateY(2px);
+}
+
+.scenario[aria-pressed='true']::before {
+  content: '';
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.phases {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.phasesLabel {
+  composes: label from '../styles/parts.module.css';
+}
+
+.phase,
+.phaseOn {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-small);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+}
+
+.phase {
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-well);
+}
+
+.phaseOn {
+  --screen-radius: var(--radius-small);
+  composes: screen from '../styles/parts.module.css';
+}
+
+/* ---- the map ---- */
+.map {
+  position: relative;
+}
+
+.svg {
+  display: none;
+  inline-size: 100%;
+  block-size: auto;
+  overflow: visible;
+}
+
+.tall {
+  display: block;
+  max-inline-size: 30rem;
+  margin-inline: auto;
+}
+
+.around {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 2px dashed var(--color-line);
+  border-radius: var(--radius-small);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  list-style: none;
+}
+
+.around li + li {
+  margin-block-start: var(--space-2);
+}
+
+@media (min-width: 62rem) {
+  .wide {
+    display: block;
+  }
+
+  .tall,
+  .around {
+    display: none;
+  }
+}
+
+/* SVG paint */
+.grey {
+  fill: none;
+  stroke: var(--color-trace);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 10;
+}
+
+.lineOutline,
+.line,
+.pulse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lineOutline {
+  stroke: var(--color-line);
+  stroke-width: 22;
+}
+
+.line {
+  stroke: var(--color-panel-top);
+  stroke-width: 11;
+}
+
+/* The signal: a short orange dash that runs along the request line twice when the page opens, then rests. */
+.pulse {
+  stroke: var(--color-accent);
+  stroke-dasharray: 0.06 0.94;
+  stroke-dashoffset: 1;
+  stroke-width: 6;
+  animation: run 3200ms var(--ease) 2 both;
+}
+
+@keyframes run {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+
+  90% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    display: none;
+  }
+}
+
+.ring {
+  stroke: var(--color-text);
+  stroke-width: 5;
+}
+
+.ring.still {
+  fill: var(--color-key-top);
+}
+
+.ring.idle {
+  fill: var(--color-panel-bottom);
+  stroke-dasharray: 7 5;
+}
+
+.ring.ready {
+  fill: var(--color-trace);
+}
+
+.ring.working {
+  fill: var(--color-accent);
+}
+
+.ring.error {
+  fill: var(--color-text);
+}
+
+.core {
+  fill: var(--color-text);
+}
+
+.cross {
+  fill: none;
+  stroke: var(--color-ground);
+  stroke-linecap: round;
+  stroke-width: 4;
+}
+
+.ringGrey {
+  fill: var(--color-panel-top);
+  stroke: var(--color-line);
+  stroke-width: 4;
+}
+
+.halo {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 4;
+}
+
+.fork {
+  fill: var(--color-key-bottom);
+  stroke: var(--color-text);
+  stroke-linejoin: round;
+  stroke-width: 5;
+}
+
+.name {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.label {
+  fill: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.tag rect {
+  fill: var(--color-screen);
+}
+
+.tag text {
+  fill: var(--color-on-screen);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pill rect {
+  stroke: var(--color-text);
+  stroke-width: 2.5;
+}
+
+.pill text {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pill.idle rect {
+  fill: var(--color-panel-top);
+  stroke-dasharray: 6 4;
+}
+
+.pill.idle text {
+  fill: var(--color-text-muted);
+}
+
+.pill.ready rect {
+  fill: var(--color-key-bottom);
+}
+
+.pill.ready text {
+  fill: var(--color-text);
+}
+
+.pill.working rect {
+  fill: var(--color-accent-strong);
+}
+
+.pill.working text {
+  fill: var(--color-on-accent);
+}
+
+.pill.error rect {
+  fill: var(--color-text);
+}
+
+.pill.error text {
+  fill: var(--color-ground);
+}
+
+.cost {
+  fill: none;
+  stroke: var(--color-line);
+  stroke-dasharray: 10 8;
+  stroke-width: 3;
+}
+
+.costTitle {
+  fill: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+}
+
+.box {
+  fill: var(--color-panel-top);
+  stroke: var(--color-line);
+  stroke-width: 4;
+}
+
+.boxHead {
+  fill: var(--color-key-bottom);
+  stroke: var(--color-line);
+  stroke-width: 4;
+}
+
+.boxTitle {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.boxSub {
+  fill: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.stem {
+  stroke: var(--color-line);
+  stroke-width: 4;
+}
+
+.step {
+  stroke: var(--color-text);
+  stroke-width: 3.5;
+}
+
+.step.idle {
+  fill: var(--color-panel-top);
+  stroke-dasharray: 6 4;
+}
+
+.step.ready {
+  fill: var(--color-trace);
+}
+
+.step.working {
+  fill: var(--color-accent);
+}
+
+.step.error {
+  fill: var(--color-text);
+}
+
+.stepLit {
+  stroke: var(--color-accent-strong);
+  stroke-width: 7;
+}
+
+.stepNumber {
+  fill: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.step.working + .stepNumber {
+  fill: var(--color-text);
+}
+
+.step.error + .stepNumber {
+  fill: var(--color-ground);
+}
+
+.stepName {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+/* The request itself: a small envelope in a badge that tilts and sends out a ring while it travels. */
+.token {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 400ms var(--ease),
+    opacity 300ms var(--ease);
+}
+
+.tokenBody {
+  fill: var(--color-accent-strong);
+  stroke: var(--color-text);
+  stroke-width: 3;
+}
+
+.tokenRing {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 1000ms var(--ease) infinite;
+}
+
+.tokenIcon {
+  color: var(--color-on-accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tilt 700ms var(--ease) infinite alternate;
+}
+
+@keyframes tilt {
+  from {
+    transform: rotate(-9deg) scale(1);
+  }
+
+  to {
+    transform: rotate(9deg) scale(1.12);
+  }
+}
+
+@keyframes ring {
+  from {
+    opacity: 0.8;
+    transform: scale(0.75);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+/* ---- the controls and the words ---- */
+.side {
+  margin-block-end: var(--space-3);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--color-line);
+}
+
+/* On a wide screen the map and the controls sit side by side, so the whole card fits on one screen
+   and the words about a step can be read while the dot moves. Narrower than that the controls
+   stay above the map. */
+@media (min-width: 75rem) {
+  .map {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    column-gap: var(--space-4);
+    align-items: start;
+  }
+
+  .side {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    padding: 0 0 0 var(--space-4);
+    border-block-end: 0;
+    border-inline-start: 1px solid var(--color-line);
+  }
+
+  /* A short screen shrinks the map so the whole card still fits: the height of the map is at most
+     the screen height minus the rows above it. */
+  .wide {
+    grid-column: 1;
+    grid-row: 1;
+    max-inline-size: max(40rem, calc((100vh - 15rem) * 1.53));
+    margin-inline: auto;
+  }
+}
+
+/* One column: the button deck and the slider share the full width of the card (up to 24rem), and
+   the time label sits under them. */
+.controls {
+  display: grid;
+  gap: var(--space-3);
+  inline-size: 100%;
+  max-inline-size: 24rem;
+}
+
+/* The transport: a dark screen as wide as the slider, with four equal square buttons spread along
+   it: restart, back, replay this step, and next. Nothing plays by itself, so Next is the main
+   button and is the orange one. */
+.player {
+  --screen-radius: var(--radius-ctl);
+  composes: screen from '../styles/parts.module.css';
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1);
+}
+
+.transport {
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-on-screen);
+  cursor: pointer;
+}
+
+.transport:hover:not(:disabled) {
+  background: rgb(236 232 220 / 0.14);
+}
+
+.transport:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.transport .icon {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+}
+
+.transportMain {
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong-low));
+  color: var(--color-on-accent);
+}
+
+.transportMain:hover:not(:disabled) {
+  background: var(--color-accent-strong-low);
+}
+
+/* The slider: a groove with a round keycap for a thumb. */
+.slider {
+  inline-size: 100%;
+  min-inline-size: 0;
+  margin: 0;
+  background: transparent;
+  accent-color: var(--color-accent-strong);
+  appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  block-size: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-well);
+}
+
+.slider::-moz-range-track {
+  block-size: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-well);
+}
+
+.slider::-webkit-slider-thumb {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  margin-block-start: -0.5rem;
+  border: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--color-accent) 0 28%, transparent 30%),
+    linear-gradient(180deg, var(--color-key-top), var(--color-key-bottom));
+  box-shadow: var(--shadow-key);
+  appearance: none;
+}
+
+.slider::-moz-range-thumb {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--color-accent) 0 28%, transparent 30%),
+    linear-gradient(180deg, var(--color-key-top), var(--color-key-bottom));
+  box-shadow: var(--shadow-key);
+}
+
+.time {
+  min-block-size: 1.3em;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+/* Room for the longest step text at each width, so nothing below it moves. */
+.caption {
+  min-block-size: 12rem;
+  margin-block: var(--space-2);
+}
+
+@media (min-width: 24rem) {
+  .caption {
+    min-block-size: 10.5rem;
+  }
+}
+
+@media (min-width: 30rem) {
+  .caption {
+    min-block-size: 8rem;
+  }
+}
+
+@media (min-width: 36rem) {
+  .caption {
+    min-block-size: 6.5rem;
+  }
+}
+
+@media (min-width: 62rem) {
+  .caption {
+    min-block-size: 6.5rem;
+  }
+}
+
+@media (min-width: 75rem) {
+  .caption {
+    min-block-size: 12rem;
+  }
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.text {
+  max-inline-size: 70ch;
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  border-block-start: 1px solid var(--color-line);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+}
+
+.table {
+  margin-block-start: var(--space-4);
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.tableCaption {
+  padding-block-end: var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-align: start;
+}
+
+.tableHead th {
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-align: start;
+}
+
+.table th,
+.table td {
+  padding: 0.25rem 0.5rem;
+  border-block-start: 1px solid var(--color-line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.rowName {
+  font-weight: 600;
+}
+
+.detail {
+  color: var(--color-text-muted);
+}
+
+.rowDot {
+  display: inline-block;
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  margin-inline-end: 0.5rem;
+  border: 2px solid var(--color-text);
+  border-radius: 50%;
+}
+
+.rowDot.idle {
+  border-style: dashed;
+}
+
+.rowDot.ready {
+  background: var(--color-trace);
+}
+
+.rowDot.working {
+  background: var(--color-accent);
+}
+
+.rowDot.error {
+  background: var(--color-text);
+}
+
+@media (max-width: 40rem) {
+  .panel {
+    padding: var(--space-3);
+  }
+
+  .tableHead {
+    position: absolute;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-block-start: 1px solid var(--color-line);
+  }
+
+  .table th,
+  .table td {
+    border-block-start: 0;
+  }
+
+  .table td:not(.detail) {
+    min-block-size: 3.3em;
+  }
+
+  .table .detail {
+    grid-column: 1 / -1;
+    min-block-size: 4.8em;
+    padding-block-start: 0;
+  }
+}

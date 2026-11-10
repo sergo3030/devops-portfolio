@@ -2,9 +2,24 @@
   margin-block-end: var(--space-5);
 }
 
+/* A section heading with a printed trace running out of it to the edge of the board. */
 .heading {
-  margin-block: 0 var(--space-3);
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--color-border);
-  font-size: var(--text-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block: 0 var(--space-4);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.heading::after {
+  content: '';
+  flex: 1;
+  block-size: 2px;
+  border-radius: 2px;
+  background: var(--color-trace);
 }

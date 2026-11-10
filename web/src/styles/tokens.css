@@ -1,47 +1,146 @@
-/* Design tokens. Every colour, size and radius used by the components comes from this file,
-   so a redesign changes the tokens and the component styles, never the component logic. */
+/* Design tokens. Every colour, size, radius, shadow and timing used by the components comes from this
+   file, so a redesign changes the tokens and the component styles, never the component logic.
+
+   The world is a warm circuit board: a greige board with a dot grid, raised modules lit from the
+   top left, dark screens, keycaps, LED dots and printed traces, with one burnt-orange accent.
+   Orange is a signal colour. As a plain fill it is only 2.5:1 on the board, so it never carries
+   text; text on an orange key uses the deeper orange (4.8:1 with its light ink). An LED is lit
+   only where something is live, current or working. The dark scheme turns the board into warm
+   charcoal and lightens the accent. Spacing sits on a 4 px grid. */
 :root {
   color-scheme: light dark;
 
-  /* Colour */
-  --color-bg: #ffffff;
-  --color-surface: #f4f6f8;
-  --color-text: #14181c;
-  --color-text-muted: #4b5661;
-  --color-accent: #0b5cad;
-  --color-border: #d5dbe1;
-  /* Edges of controls the visitor must find (inputs): at least 3:1 against the page. */
-  --color-border-strong: #6b7683;
-  --color-focus: #b45309;
+  /* The board and what sits on it */
+  --color-ground: #d8d4ca;
+  --color-ground-deep: #cdc8bc;
+  --color-band: #c9c4b7;
+  --color-dot: #b9b3a6;
+  --color-panel-top: #ebe7de;
+  --color-panel-bottom: #dcd8ce;
+  --color-key-top: #f3f0e8;
+  --color-key-bottom: #dcd8cd;
+  --color-text: #1c1b19;
+  --color-text-muted: #57524a;
+  --color-line: #8f887b;
+  --color-trace: #b3ac9f;
+
+  /* The accent: a signal. The strong one carries text. */
+  --color-accent: #d2682b;
+  --color-accent-strong: #b4501a;
+  --color-accent-strong-low: #a04416;
+  --color-on-accent: #fff7ef;
+  --color-link: #8f3f12;
+
+  /* Screens */
+  --color-screen: #1d1c1a;
+  --color-on-screen: #ece8dc;
+  --color-screen-muted: #a8a398;
+  --color-screen-accent: #e6a77d;
+
+  /* Focus: dark ring with a light halo, so one of them shows on any surface */
+  --color-focus: #1c1b19;
+  --color-focus-halo: #f6f3ec;
+
+  /* The LED that is off */
+  --color-led-off: #3a3834;
+
+  /* Light and shadow: lit from the top left. Every shadow is neutral. */
+  --shadow-raise:
+    7px 9px 20px rgb(112 104 90 / 0.34), -6px -6px 15px rgb(255 255 255 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -1px 0 rgb(0 0 0 / 0.07);
+  --shadow-key:
+    3px 4px 8px rgb(112 104 90 / 0.4), -2px -2px 6px rgb(255 255 255 / 0.8),
+    inset 0 1px 0 rgb(255 255 255);
+  --shadow-key-down:
+    inset 2px 2px 5px rgb(112 104 90 / 0.45), inset -2px -2px 4px rgb(255 255 255 / 0.55);
+  --shadow-well:
+    inset 3px 3px 8px rgb(112 104 90 / 0.35), inset -3px -3px 7px rgb(255 255 255 / 0.6);
+  --shadow-screen: inset 0 2px 8px rgb(0 0 0 / 0.6), 0 1px 0 rgb(255 255 255 / 0.6);
+  --shadow-accent-key:
+    3px 4px 8px rgb(112 104 90 / 0.4), -2px -2px 6px rgb(255 255 255 / 0.6),
+    inset 0 1px 0 rgb(255 255 255 / 0.3);
 
   /* Type */
-  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --font-display: 'Saira Semi Condensed', 'Arial Narrow', 'Segoe UI', sans-serif;
+  --font-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --text-label: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 2rem;
+  --text-lg: 1.375rem;
+  --text-xl: clamp(2rem, 5vw, 2.5rem);
+  --text-display: clamp(3.25rem, 9vw, 5.75rem);
   --line-height: 1.6;
+  --tracking-label: 0.02em;
 
-  /* Space and shape */
+  /* Space (4 px grid) */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;
   --space-4: 1.5rem;
   --space-5: 3rem;
-  --radius: 0.5rem;
-  --content-width: 46rem;
+  --space-6: 4.5rem;
+  --content-width: 48rem;
+  --wall-width: 80rem;
+
+  /* Shape: a panel is 14 to 20 px, a control 8 to 10, a keycap or tag 4 to 6, and an inner radius
+     is the outer one minus the padding between them. */
+  --radius-device: 1.25rem;
+  --radius-module: 1.125rem;
+  --radius-ctl: 0.625rem;
+  --radius-small: 0.375rem;
+  --radius-screen: 0.375rem;
+
+  /* Motion: one curve, a short press, a short entrance, a short step between pieces */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-enter: 500ms;
+  --step: 60ms;
+
+  /* How long the board takes to start up, before the modules power on */
+  --boot: 1.5s;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #0f1419;
-    --color-surface: #182029;
-    --color-text: #e6ebf0;
-    --color-text-muted: #a3afbb;
-    --color-accent: #6fb1ff;
-    --color-border: #2b3744;
-    --color-border-strong: #7d8a98;
-    --color-focus: #fbbf24;
+    --color-ground: #1f1e1c;
+    --color-ground-deep: #171614;
+    --color-band: #181715;
+    --color-dot: #2e2c29;
+    --color-panel-top: #33322e;
+    --color-panel-bottom: #292825;
+    --color-key-top: #3b3a35;
+    --color-key-bottom: #2c2b28;
+    --color-text: #ece8dc;
+    --color-text-muted: #b2ac9f;
+    --color-line: #5d594f;
+    --color-trace: #46443e;
+
+    --color-accent: #e8884a;
+    --color-accent-strong: #e8884a;
+    --color-accent-strong-low: #d9763a;
+    --color-on-accent: #1c1b19;
+    --color-link: #efa771;
+
+    --color-screen: #12110f;
+
+    --color-focus: #ece8dc;
+    --color-focus-halo: #1f1e1c;
+
+    --color-led-off: #55524b;
+
+    --shadow-raise:
+      7px 9px 20px rgb(0 0 0 / 0.5), -5px -5px 14px rgb(255 255 255 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.07), inset 0 -1px 0 rgb(0 0 0 / 0.4);
+    --shadow-key:
+      3px 4px 8px rgb(0 0 0 / 0.55), -2px -2px 5px rgb(255 255 255 / 0.05),
+      inset 0 1px 0 rgb(255 255 255 / 0.09);
+    --shadow-key-down:
+      inset 2px 2px 5px rgb(0 0 0 / 0.6), inset -2px -2px 4px rgb(255 255 255 / 0.05);
+    --shadow-well: inset 3px 3px 8px rgb(0 0 0 / 0.55), inset -2px -2px 6px rgb(255 255 255 / 0.05);
+    --shadow-screen: inset 0 2px 8px rgb(0 0 0 / 0.8), 0 1px 0 rgb(255 255 255 / 0.06);
+    --shadow-accent-key:
+      3px 4px 8px rgb(0 0 0 / 0.55), -2px -2px 5px rgb(255 255 255 / 0.05),
+      inset 0 1px 0 rgb(255 255 255 / 0.35);
   }
 }

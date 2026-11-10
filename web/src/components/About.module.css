@@ -1,4 +1,67 @@
-.heading {
-  margin-block: var(--space-3) var(--space-1);
-  font-size: var(--text-md);
+/* A summary module, the diagram on a darker band of the board across the page, and small modules below. */
+.layout {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.summary {
+  composes: module from '../styles/parts.module.css';
+}
+
+.summaryHeading {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.lead {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
+  padding-inline-end: max(var(--space-4), calc(100% - 70ch));
+  font-size: 1.0625rem;
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  padding-inline-end: max(var(--space-4), calc(100% - 70ch));
+  border-block-start: 1px solid var(--color-line);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The band runs the full width of the page: the shadow and the clip carry it past the column
+   without adding a horizontal scrollbar. */
+.band {
+  padding-block: var(--space-5);
+  background: var(--color-band);
+  box-shadow: 0 0 0 100vmax var(--color-band);
+  clip-path: inset(0 -100vmax);
+}
+
+.cards {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.card {
+  composes: module from '../styles/parts.module.css';
+  padding: var(--space-3) var(--space-4);
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.cardHeading {
+  margin-block: 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.15;
 }

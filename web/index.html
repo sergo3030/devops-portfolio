@@ -5,8 +5,12 @@
     <meta http-equiv="Content-Security-Policy" content="%CSP%" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <!-- No icon yet (UI pass): an empty one stops the browser asking for /favicon.ico, a 404. -->
-    <link rel="icon" href="data:," />
+    <!-- The tab icon: a keycap with an S and one LED. The SVG follows a dark browser theme; the PNGs
+         are for browsers without SVG icons. Declaring icons also stops the browser asking for
+         /favicon.ico, which would be a 404. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>%TITLE%</title>
     <meta name="description" content="%DESCRIPTION%" />
     <meta property="og:type" content="website" />
