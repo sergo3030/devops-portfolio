@@ -1,15 +1,20 @@
+/* The filter is a field sunk into the board; each skill is a keycap, and a hidden one leaves a
+   dashed empty socket behind. */
 .filter {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  max-inline-size: 22rem;
+  max-inline-size: 24rem;
 }
 
-.filter input {
+.filterLabel {
+  composes: label from '../styles/parts.module.css';
+}
+
+.filterInput {
+  composes: well from '../styles/parts.module.css';
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+  border: 0;
   color: inherit;
   font: inherit;
 }
@@ -17,6 +22,7 @@
 .count {
   margin-block: var(--space-2) var(--space-3);
   color: var(--color-text-muted);
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
 
@@ -26,7 +32,9 @@
 
 .category {
   margin-block: 0 var(--space-2);
-  font-size: var(--text-md);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .items {
@@ -39,9 +47,20 @@
 }
 
 .item {
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  font-size: var(--text-sm);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-small);
+  background: linear-gradient(180deg, var(--color-key-top), var(--color-key-bottom));
+  box-shadow: var(--shadow-key);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.ghost {
+  inline-size: 4.5rem;
+  block-size: 1.75rem;
+  border: 2px dashed var(--color-line);
+  border-radius: var(--radius-small);
+  opacity: 0.6;
 }

@@ -9,7 +9,9 @@ export function Languages({ languages }: Props) {
     <Section heading="Languages">
       <ul className={styles.list}>
         {languages.map((language) => (
-          <li key={language}>{language}</li>
+          <li key={language} className={styles.socket}>
+            {language}
+          </li>
         ))}
       </ul>
     </Section>

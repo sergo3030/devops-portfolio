@@ -1,0 +1,72 @@
+/* The boot screen sits over the page for the boot time, then fades out and stays gone. The page
+   underneath is already there and already readable; this only covers it. */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  background:
+    radial-gradient(circle at 1px 1px, var(--color-dot) 1px, transparent 1.2px) 0 0 / 28px 28px,
+    var(--color-ground);
+  pointer-events: none;
+  animation: leave var(--dur-enter) var(--ease) calc(var(--boot) + 150ms) forwards;
+}
+
+@keyframes leave {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--radius-ctl);
+  background: var(--color-text);
+}
+
+.logo::after {
+  content: '';
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.track {
+  composes: well from '../styles/parts.module.css';
+  display: block;
+  inline-size: min(22rem, 80vw);
+  padding: 0.5rem 0.75rem;
+}
+
+/* Sixteen ticks, shown one at a time as the clip opens. */
+.fill {
+  display: block;
+  block-size: 0.75rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-accent) 0 calc(6.25% - 5px),
+    transparent calc(6.25% - 5px) 6.25%
+  );
+  clip-path: inset(0 100% 0 0);
+  animation: fill var(--boot) steps(16) forwards;
+}
+
+@keyframes fill {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot {
+    display: none;
+  }
+}

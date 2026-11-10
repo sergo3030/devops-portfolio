@@ -12,10 +12,13 @@ export function Experience({ jobs }: Props) {
       <ol className={styles.timeline}>
         {newestFirst(jobs).map((job) => (
           <li key={`${job.employer}-${job.start}`} className={styles.job}>
+            <p className={styles.period}>
+              <i className={styles.led} aria-hidden="true" />
+              {formatPeriod(job.start, job.end)}
+            </p>
             <h3 className={styles.role}>
               {job.role}, {job.employer}
             </h3>
-            <p className={styles.period}>{formatPeriod(job.start, job.end)}</p>
             <ul className={styles.bullets}>
               {job.bullets.map((bullet) => (
                 <li key={bullet}>{bullet}</li>

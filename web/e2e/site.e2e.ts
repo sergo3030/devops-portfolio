@@ -28,10 +28,14 @@ test('shows the content and version the running API serves', async ({ page, requ
 
   await expect(dataStatus(page)).toHaveText(`Live from API · version ${health.version}`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(content.profile.name);
-  // The About section is part of the saved copy and of the live content, and its header link works.
-  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toBeVisible();
+  // The About page is part of the saved copy and of the live content. It is its own view, opened
+  // from the header, and the Portfolio link brings the portfolio back.
+  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toHaveCount(0);
   await page.getByRole('link', { name: 'About this project' }).click();
   await expect(page).toHaveURL(/#about$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toBeVisible();
+  await page.getByRole('link', { name: 'Portfolio' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toHaveCount(0);
   // Same-origin policy, CSP and CORS all had to agree for the answer to arrive without errors.
   expect(problems).toEqual([]);
 });
@@ -51,7 +55,7 @@ test('keeps the About section when the running API is older and does not serve i
       headers: { 'access-control-allow-origin': 'http://127.0.0.1:4173' },
     }),
   );
-  await page.goto(SITE);
+  await page.goto(`${SITE}#about`);
 
   await expect(dataStatus(page)).toContainText('Live from API');
   await expect(page.getByRole('heading', { level: 2, name: 'About this project' })).toBeVisible();

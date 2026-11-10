@@ -1,15 +1,47 @@
+/* The status bar: it stays at the foot of the screen and says where the data came from. It is out
+   of the flow of the content, so a late answer never moves the page. */
 .footer {
-  padding-block-start: var(--space-3);
-  border-block-start: 1px solid var(--color-border);
-  font-size: var(--text-sm);
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 10;
+  padding-block: var(--space-2);
+  background: linear-gradient(180deg, var(--color-panel-top), var(--color-panel-bottom));
+  box-shadow:
+    0 -6px 16px rgb(0 0 0 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.5);
+  color: var(--color-text);
 }
 
-.footer p {
-  margin: 0;
-  color: var(--color-text-muted);
+.inner {
+  max-inline-size: var(--wall-width);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
 }
 
-/* The colour is never the only signal: the words say it too. */
+/* A printed label with an LED: lit, with a soft slow pulse, while the data is live; off when the
+   saved copy is shown. The words say the same, so the LED is never the only signal. */
+.live,
 .offline {
-  font-weight: 600;
+  composes: label from '../styles/parts.module.css';
+  color: var(--color-text);
+  font-size: 0.8125rem;
+}
+
+.led {
+  composes: led from '../styles/parts.module.css';
+}
+
+.ledOn {
+  composes: led lit from '../styles/parts.module.css';
+  animation: live 2400ms var(--ease) infinite alternate;
+}
+
+@keyframes live {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.4;
+  }
 }

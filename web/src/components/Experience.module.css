@@ -4,41 +4,39 @@
   list-style: none;
 }
 
+/* Each role is one module: the dates on a printed label, the role, then what was done. */
 .job {
-  position: relative;
-  margin-inline-start: var(--space-3);
-  padding-inline-start: var(--space-4);
-  padding-block-end: var(--space-4);
-  border-inline-start: 2px solid var(--color-border);
-}
-
-.job::before {
-  content: '';
-  position: absolute;
-  inset-block-start: 0.45rem;
-  inset-inline-start: calc(-0.35rem - 1px);
-  inline-size: 0.7rem;
-  block-size: 0.7rem;
-  border-radius: 50%;
-  background: var(--color-accent);
-}
-
-.role {
-  margin-block: 0;
-  font-size: var(--text-md);
+  composes: module from '../styles/parts.module.css';
+  margin-block-end: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-3);
 }
 
 .period {
-  margin-block: 0 var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  composes: label from '../styles/parts.module.css';
+}
+
+.led {
+  composes: led from '../styles/parts.module.css';
+}
+
+.role {
+  margin-block: var(--space-2) var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .bullets {
+  max-inline-size: 70ch;
   margin-block: 0;
-  padding-inline-start: var(--space-4);
+  padding-inline: 1.25rem 0;
 }
 
 .bullets li + li {
   margin-block-start: var(--space-2);
+}
+
+.bullets li::marker {
+  color: var(--color-line);
 }

@@ -15,8 +15,8 @@ describe('server rendering', () => {
     expect(html).toContain('Mar 2024');
   });
 
-  it('renders the About section on a server too', () => {
-    const html = renderToString(<App content={withAbout} />);
+  it('renders the About page on a server too', () => {
+    const html = renderToString(<App content={withAbout} page="about" />);
     expect(html).toContain('id="about"');
     expect(html).toContain('Because it is a good example.');
   });

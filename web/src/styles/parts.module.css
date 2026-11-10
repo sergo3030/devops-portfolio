@@ -1,0 +1,111 @@
+/* The parts the board is made of. Components take them with `composes`, so a module, a key or an LED
+   looks the same wherever it is used.
+
+   A component that needs a part to differ does not override the part's properties (the part's
+   stylesheet can load after the component's, and then the override is silently lost). It sets the
+   custom property the part reads instead: --module-radius, --label-space, --key-padding, --key-font,
+   --key-size, --key-weight, --key-tracking, --screen-radius. */
+
+/* A module: a raised plate, lit from the top left. */
+.module {
+  border-radius: var(--module-radius, var(--radius-module));
+  background: linear-gradient(145deg, var(--color-panel-top), var(--color-panel-bottom));
+  box-shadow: var(--shadow-raise);
+  color: var(--color-text);
+}
+
+/* A small printed label: mono, muted, set in the case the text is written in. */
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  margin-block-end: var(--label-space, 0);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  line-height: 1rem;
+}
+
+/* An LED. It is off by default and `lit` turns it orange. A lit LED means something is live,
+   current or working; it never decorates. It has no glow and no flicker. */
+.led {
+  display: inline-block;
+  flex: none;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-led-off);
+  box-shadow: inset 1px 1px 2px rgb(0 0 0 / 0.5);
+}
+
+.lit {
+  background: var(--color-accent);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.4);
+}
+
+/* A scale of tick marks, like the edge of a ruler. */
+.ticks {
+  block-size: 0.5rem;
+  margin-block-start: var(--space-3);
+  background: repeating-linear-gradient(90deg, var(--color-line) 0 1.5px, transparent 1.5px 8px);
+  opacity: 0.7;
+}
+
+/* A keycap: it moves down when pressed. The row height is 36 px; a hero key is 44. */
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--key-padding, 0.5rem 1rem);
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: linear-gradient(180deg, var(--color-key-top), var(--color-key-bottom));
+  box-shadow: var(--shadow-key);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--key-font, var(--font-mono));
+  font-size: var(--key-size, var(--text-sm));
+  font-weight: var(--key-weight, 500);
+  letter-spacing: var(--key-tracking, var(--tracking-label));
+  line-height: 1.25rem;
+  text-decoration: none;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.key:hover {
+  transform: translateY(1px);
+}
+
+.key:active,
+.pressed {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-key-down);
+}
+
+/* The orange key: the primary action. Its ink is light, on the deeper orange. */
+.accent {
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong-low));
+  box-shadow: var(--shadow-accent-key);
+  color: var(--color-on-accent);
+}
+
+/* A well: sunk into the board, for a field or a track. */
+.well {
+  border-radius: var(--radius-ctl);
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-well);
+}
+
+/* A screen: dark glass with light mono text. */
+.screen {
+  border-radius: var(--screen-radius, var(--radius-screen));
+  background: var(--color-screen);
+  box-shadow: var(--shadow-screen);
+  color: var(--color-on-screen);
+  font-family: var(--font-mono);
+}

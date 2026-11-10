@@ -1,29 +1,78 @@
+@font-face {
+  font-family: 'Saira Semi Condensed';
+  src: url('../assets/fonts/saira-semi-condensed-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Figtree';
+  src: url('../assets/fonts/figtree-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../assets/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+/* The board: warm greige with a faint dot grid, like a prototyping board. */
+html {
+  scroll-padding-block-end: 4rem;
+  background: var(--color-ground);
+  scrollbar-color: var(--color-line) var(--color-ground);
+}
+
 body {
   margin: 0;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 1px 1px, var(--color-dot) 1px, transparent 1.2px) 0 0 / 28px 28px,
+    var(--color-ground);
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: var(--text-md);
   line-height: var(--line-height);
+  caret-color: var(--color-accent-strong);
 }
 
+/* Two rings, so one of them shows on the board, on a module and on an orange key. */
 :focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-focus-halo);
+}
+
+::selection {
+  background: var(--color-accent-strong);
+  color: var(--color-on-accent);
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-link);
+  text-underline-offset: 0.2em;
 }
 
+input {
+  accent-color: var(--color-accent-strong);
+}
+
+/* Pseudo-elements are not matched by *, and the board's signals and cursor are drawn with them. */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;

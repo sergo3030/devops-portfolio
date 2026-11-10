@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { sampleContent, withAbout } from './fixtures';
 import { Root } from './Root';
@@ -19,6 +19,7 @@ const ok = (body: unknown) => () => Promise.resolve(new Response(JSON.stringify(
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.location.hash = '';
 });
 
 describe('Root', () => {
@@ -43,6 +44,7 @@ describe('Root', () => {
 
   it('keeps the About section when the API is older and does not serve it yet', async () => {
     stubApi(ok(livePerson), ok({ status: 'ok', version: '1.2.3' }));
+    window.location.hash = '#about';
     render(<Root snapshot={withAbout} apiBase="http://api.test" />);
     expect(screen.getByRole('region', { name: 'About this project' })).toBeInTheDocument();
 
@@ -66,6 +68,21 @@ describe('Root', () => {
     expect(await screen.findByText('API offline: showing the saved copy')).toBeInTheDocument();
     expect(screen.queryByText('Live Person')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'x' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Root pages', () => {
+  it('follows the address: the portfolio by default, the About page for #about', async () => {
+    render(<Root snapshot={withAbout} apiBase={undefined} />);
+    expect(screen.queryByRole('region', { name: 'About this project' })).not.toBeInTheDocument();
+    act(() => {
+      window.location.hash = '#about';
+    });
+    expect(await screen.findByRole('region', { name: 'About this project' })).toBeInTheDocument();
+    act(() => {
+      window.location.hash = '';
+    });
+    expect(await screen.findByRole('region', { name: 'Experience' })).toBeInTheDocument();
   });
 });
 
