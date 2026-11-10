@@ -103,7 +103,7 @@
 }
 
 /* A skill module: a title, three skills, a scale, and a trace that runs to the device. Its LED is
-   off: the module is decoration, so nothing on it is live. */
+   off, and lit and pulsing only while the content comes from the API. */
 .chip {
   composes: module from '../styles/parts.module.css';
   position: relative;
@@ -138,6 +138,11 @@
 
 .ledOn {
   composes: led lit from '../styles/parts.module.css';
+}
+
+/* The module LEDs light up and breathe while the content comes from the API. */
+.ledLive {
+  composes: led lit pulse from '../styles/parts.module.css';
 }
 
 .ticks {

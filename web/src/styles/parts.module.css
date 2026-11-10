@@ -46,6 +46,21 @@
   box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.4);
 }
 
+/* A lit LED that breathes slowly. It is for data that is live, and for nothing else. */
+.pulse {
+  animation: pulse 2400ms var(--ease) infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.4;
+  }
+}
+
 /* A scale of tick marks, like the edge of a ruler. */
 .ticks {
   block-size: 0.5rem;

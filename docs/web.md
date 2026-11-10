@@ -142,9 +142,9 @@ charcoal and lightens the orange.
   the repository. Bricolage Grotesque, the display font of the two earlier designs, was replaced on
   2026-11-10: its editorial shapes did not fit hardware panels (the owner's call).
 - **Parts (`styles/parts.module.css`):** a *module* is a raised plate (18 px corners), a *label* is a
-  small mono line in the case the text is written in, an *LED* is off or orange (no glow; steady, except the status
-  bar's LED, which pulses softly while the API is live; lit only where something is live, current or
-  working), a *key* moves down when pressed (36 px tall, a
+  small mono line in the case the text is written in, an *LED* is off or orange (no glow; steady, except the live-data
+  LEDs, which pulse softly while the content comes from the API: the status bar's and the six skill
+  modules'; lit only where something is live, current or working), a *key* moves down when pressed (36 px tall, a
   hero key 44), a *well* is sunk into the board, and a *screen* is dark glass with light mono text. A
   component that needs a part to differ sets the part's custom property (`--key-padding`,
   `--module-radius` and the others listed at the top of `parts.module.css`). It must not override the

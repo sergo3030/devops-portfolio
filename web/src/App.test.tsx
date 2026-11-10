@@ -183,3 +183,19 @@ describe('skills filter', () => {
     expect(screen.getByRole('status')).toHaveTextContent('4 skills shown');
   });
 });
+
+describe('live data', () => {
+  it('lights the skill module LEDs while the content comes from the API, and not otherwise', () => {
+    const lit = (container: HTMLElement) => container.querySelectorAll('[class*="ledLive"]').length;
+    const live = render(
+      <App content={sampleContent} dataSource={{ kind: 'live', version: '1.0.0' }} />,
+    );
+    expect(lit(live.container)).toBe(2);
+    live.unmount();
+    const offline = render(<App content={sampleContent} dataSource={{ kind: 'offline' }} />);
+    expect(lit(offline.container)).toBe(0);
+    offline.unmount();
+    const none = render(<App content={sampleContent} />);
+    expect(lit(none.container)).toBe(0);
+  });
+});

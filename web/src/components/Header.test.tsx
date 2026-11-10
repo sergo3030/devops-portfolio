@@ -50,6 +50,18 @@ describe('Header', () => {
     expect(screen.queryByText('Containers')).not.toBeInTheDocument();
   });
 
+  it('lights and pulses the module LEDs only while the data is live', () => {
+    const skills = [
+      group('Containers', ['Kubernetes', 'Docker']),
+      group('Logs', ['Loki', 'Grafana']),
+    ];
+    const live = render(<Header profile={profile} links={links} skills={skills} live />);
+    expect(live.container.querySelectorAll('[class*="ledLive"]')).toHaveLength(2);
+    live.unmount();
+    const idle = render(<Header profile={profile} links={links} skills={skills} />);
+    expect(idle.container.querySelectorAll('[class*="ledLive"]')).toHaveLength(0);
+  });
+
   it('has no side modules without skills', () => {
     const { container } = render(<Header profile={profile} links={links} />);
     expect(container.querySelectorAll('[data-text]')).toHaveLength(0);

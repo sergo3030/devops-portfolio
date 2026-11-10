@@ -32,16 +32,5 @@
 }
 
 .ledOn {
-  composes: led lit from '../styles/parts.module.css';
-  animation: live 2400ms var(--ease) infinite alternate;
-}
-
-@keyframes live {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0.4;
-  }
+  composes: led lit pulse from '../styles/parts.module.css';
 }
