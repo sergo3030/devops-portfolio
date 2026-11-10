@@ -11,7 +11,7 @@ FROM public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0@sha256:17cfd08eff1dfea3f6a9
 # ------------------------------------------------------------------ content stage
 # Builds the published content (approved lines only). The private denylist cannot run in
 # CI, so the content must already have passed it locally, where the pre-commit hook runs it.
-FROM python:3.13-slim@sha256:cf50a4f6ac4f026458b08d5222023d700ac806410dff5e9ca8728fa44f2b850f AS content
+FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS content
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
@@ -28,7 +28,7 @@ RUN /opt/content-venv/bin/python scripts/check_content.py \
 # ------------------------------------------------------------------ builder stage
 # The runtime dependencies only, compiled to bytecode: the root filesystem is read-only on
 # Lambda, so nothing can be compiled at run time.
-FROM python:3.13-slim@sha256:cf50a4f6ac4f026458b08d5222023d700ac806410dff5e9ca8728fa44f2b850f AS builder
+FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS builder
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -39,7 +39,7 @@ COPY app/pyproject.toml app/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 
 # ------------------------------------------------------------------ runtime stage
-FROM python:3.13-slim@sha256:cf50a4f6ac4f026458b08d5222023d700ac806410dff5e9ca8728fa44f2b850f AS runtime
+FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS runtime
 
 # Set by the build: CI uses 0.0.0-dev and the commit, the release workflow uses the git tag.
 ARG APP_VERSION=0.0.0-dev
