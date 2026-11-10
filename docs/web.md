@@ -268,3 +268,11 @@ The build reads `VITE_API_URL` from `web/.env.production` (task 16b), so the dep
 All versions are exact and `ignore-scripts` is on, so no package can run code when installed.
 `npm audit --omit=dev` runs in CI (production dependencies only). ESLint 9 and TypeScript 6.0.3
 are held back from the next major on purpose (D31).
+
+**One override.** `package.json` forces `minimatch ^11.0.1` for `@typescript-eslint/typescript-estree`
+(GHSA-g3hv-75wg-m249, a denial of service through a crafted glob, fixed in 11.0.1). The package asks
+for `^10.2.2`, so a normal update cannot reach the fix, and its latest release (8.72.2) still asks for
+it. The package is a dev dependency used only by the linter and never reaches the built site. The
+override was checked with the linter, the tests and the build. **Revisit** when typescript-eslint
+accepts minimatch 11: remove the `overrides` block, run `npm install --package-lock-only`, and run
+`just web-check`.
