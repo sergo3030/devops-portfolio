@@ -41,6 +41,16 @@ RUN uv sync --locked --no-dev --no-install-project
 # ------------------------------------------------------------------ runtime stage
 FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS runtime
 
+# Security update for zlib1g. The base image above predates Debian's fix (DSA-6613-1:
+# CVE-2026-76844 and CVE-2026-85091, fixed in 1:1.3.dfsg+really1.3.1-1+deb13u1), so the image scan
+# fails without it. Remove this step when the pinned python:3.13-slim already carries that version
+# or a newer one; until then it is the only package this image upgrades. The version is not pinned on
+# purpose: a pin breaks the build as soon as the next update replaces it in the Debian mirror.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends --only-upgrade zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set by the build: CI uses 0.0.0-dev and the commit, the release workflow uses the git tag.
 ARG APP_VERSION=0.0.0-dev
 ARG GIT_SHA=
