@@ -6,8 +6,8 @@ version = "0.0.0"
 description = "Read-only FastAPI service that serves the portfolio's published content"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi==0.149.0",
-    "pydantic==2.14.1",
+    "fastapi==0.162.0",
+    "pydantic==2.14.2",
     "uvicorn==0.54.0",
 ]
 
@@ -21,11 +21,11 @@ content = [
 dev = [
     { include-group = "content" },
     "httpx==0.28.1",
-    "mypy==2.4.0",
-    "pytest==9.1.1",
-    "ruff==0.17.1",
+    "mypy==2.4.1",
+    "pytest==9.2.0",
+    "ruff==0.17.3",
     "types-jsonschema==4.26.0.20261006",
-    "types-pyyaml==6.0.12.20260906",
+    "types-pyyaml==6.0.12.20261103",
 ]
 
 [tool.ruff]
