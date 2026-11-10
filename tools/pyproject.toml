@@ -13,3 +13,7 @@ dependencies = [
 
 [tool.uv]
 package = false
+# checkov pins asteval==1.0.6 (every release, the newest 3.4.3 included). That version has two sandbox
+# escapes, GHSA-89v8-rhwq-hf77 and GHSA-9w56-46f6-3qhx, fixed in 1.0.9. The override lets the lock
+# file use the fixed version. Remove it when checkov depends on asteval 1.0.9 or newer.
+override-dependencies = ["asteval>=1.0.9"]
