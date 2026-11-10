@@ -102,7 +102,8 @@ A panel is 14 to 20 px (modules 18, the device 20), a control 8 to 10 (keys 10, 
 
 - **Device:** the hero module. Role and country as a printed label, the name on two lines, a screen with
   the summary and a cursor, two orange keys for the profiles, one size and 16 px apart.
-- **Side modules:** up to six skill modules beside the device from 62rem, each with an unlit LED,
+- **Side modules:** up to six skill modules beside the device from 62rem, each with an LED that is
+  off, and lit and softly pulsing while the content comes from the API (the same pulse as the status bar),
   three skills, a tick scale and a trace to the device. Decoration: hidden from assistive technology.
 - **Keys:** page keys (the current page is pressed in, with a lit LED), orange profile keys, and the
   skills as small keycaps. A hidden skill leaves a dashed empty slot.
@@ -123,7 +124,7 @@ themselves, the summary is revealed top to bottom, a short orange signal runs al
 and the cursor blinks six times and stays on. Then the page is still. All of it is CSS.
 
 One curve (`--ease`), a 150 ms press and a 500 ms entrance, all tokens. Nothing loops without a
-reason: LEDs are steady, except the live-data LED, which pulses softly while the data is live. A lit LED
+reason: LEDs are steady, except the live-data LEDs (the status bar's and the skill modules'), which pulse softly while the data is live. A lit LED
 means something is live, current or working (the role line, the current page, live data, a working
 step). Reduced motion removes the boot screen and every animation.
 The diagram moves only when the visitor presses a key; its request line carries a signal twice when the

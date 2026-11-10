@@ -5,6 +5,8 @@ import styles from './Header.module.css';
 type Props = Pick<Content, 'profile' | 'links'> & {
   /** The skill groups the side modules are made from. Left out, the board has no side modules. */
   skills?: SkillGroup[];
+  /** True while the content comes from the API: the module LEDs light up and pulse like the status bar's. */
+  live?: boolean;
   aboutTitle?: string;
   current?: Page;
 };
@@ -35,11 +37,11 @@ function NameLines({ name }: { name: string }) {
  * hidden from assistive technology and its words are drawn by the stylesheet from data attributes:
  * they are not read twice, and a search for a skill finds it once.
  */
-function Module({ group }: { group: SkillGroup }) {
+function Module({ group, live }: { group: SkillGroup; live: boolean }) {
   return (
     <div className={styles.chip}>
       <p className={styles.chipHead}>
-        <i className={styles.led} />
+        <i className={live ? styles.ledLive : styles.led} />
         <span data-text={group.category} />
       </p>
       <p className={styles.chipItems}>
@@ -53,7 +55,14 @@ function Module({ group }: { group: SkillGroup }) {
   );
 }
 
-export function Header({ profile, links, skills = [], aboutTitle, current = 'home' }: Props) {
+export function Header({
+  profile,
+  links,
+  skills = [],
+  live = false,
+  aboutTitle,
+  current = 'home',
+}: Props) {
   const { name, title, country, summary } = profile;
   const modules = moduleGroups(skills);
   const half = Math.ceil(modules.length / 2);
@@ -92,7 +101,7 @@ export function Header({ profile, links, skills = [], aboutTitle, current = 'hom
           {modules.length > 0 ? (
             <div className={`${styles.side} ${styles.left}`} aria-hidden="true">
               {modules.slice(0, half).map((group) => (
-                <Module key={group.category} group={group} />
+                <Module key={group.category} group={group} live={live} />
               ))}
             </div>
           ) : null}
@@ -136,7 +145,7 @@ export function Header({ profile, links, skills = [], aboutTitle, current = 'hom
           {modules.length > 0 ? (
             <div className={`${styles.side} ${styles.right}`} aria-hidden="true">
               {modules.slice(half).map((group) => (
-                <Module key={group.category} group={group} />
+                <Module key={group.category} group={group} live={live} />
               ))}
             </div>
           ) : null}

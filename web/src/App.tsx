@@ -47,6 +47,7 @@ export function App({ content, dataSource = { kind: 'none' }, page = 'home' }: P
         profile={content.profile}
         links={content.links}
         skills={content.skills}
+        live={dataSource.kind === 'live'}
         {...(hasAbout ? { aboutTitle, current: view } : {})}
       />
       <div className={styles.manifest} ref={body} tabIndex={-1}>
