@@ -81,7 +81,7 @@
   overflow: visible;
 }
 
-.tall {
+.compact {
   display: block;
   max-inline-size: 30rem;
   margin-inline: auto;
@@ -106,7 +106,7 @@
     display: block;
   }
 
-  .tall,
+  .compact,
   .around {
     display: none;
   }
@@ -469,7 +469,9 @@
    the time label sits under them. */
 .controls {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   inline-size: 100%;
   max-inline-size: 24rem;
 }
@@ -481,6 +483,7 @@
   --screen-radius: var(--radius-ctl);
   composes: screen from '../styles/parts.module.css';
   display: flex;
+  grid-column: 1 / -1;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
@@ -571,12 +574,16 @@
   box-shadow: var(--shadow-key);
 }
 
+/* Beside the slider in the pinned bar: a fixed width (the longest label is 18 characters), so the
+   slider never changes length from one step to the next. */
 .time {
   min-block-size: 1.3em;
+  min-inline-size: 8.25rem;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-label);
   line-height: 1.3;
+  text-align: end;
 }
 
 /* Room for the longest step text at each width, so the dock never changes height and the map never
@@ -657,7 +664,18 @@
   }
 
   .controls {
+    grid-template-columns: none;
     gap: var(--space-3);
+  }
+
+  .player {
+    grid-column: auto;
+  }
+
+  .time {
+    min-inline-size: 0;
+    font-size: var(--text-sm);
+    text-align: start;
   }
 
   .caption {
@@ -717,6 +735,57 @@
   }
 }
 
+/* The state table is the text version of the picture. It sits behind a button below 62rem, so the
+   page under the map is short; from 62rem it is always open and the button is gone. The button is
+   wrapped, so hiding the wrapper never fights the keycap part's own display. */
+.tableToggleBar {
+  margin-block-start: var(--space-4);
+}
+
+.tableToggle {
+  --key-font: var(--font-body);
+  --key-weight: 600;
+  composes: key from '../styles/parts.module.css';
+  inline-size: 100%;
+}
+
+.tableToggle[aria-expanded='true'] {
+  background: var(--color-ground-deep);
+  box-shadow: var(--shadow-key-down);
+  transform: translateY(2px);
+}
+
+.tableToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+}
+
+.chevron {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.tableFolded {
+  display: none;
+}
+
+@media (min-width: 62rem) {
+  .tableToggleBar {
+    display: none;
+  }
+
+  .tableFolded {
+    display: block;
+  }
+}
+
 .table {
   margin-block-start: var(--space-4);
   inline-size: 100%;
@@ -724,7 +793,16 @@
   font-size: var(--text-sm);
 }
 
+/* The caption is the table's name for assistive technology. Below 62rem the button above the table
+   says the same, so the caption is visually hidden there (and still read). */
 .tableCaption {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   padding-block-end: var(--space-2);
   color: var(--color-text-muted);
   font-family: var(--font-mono);
@@ -732,6 +810,18 @@
   font-weight: 500;
   letter-spacing: var(--tracking-label);
   text-align: start;
+}
+
+@media (min-width: 62rem) {
+  .tableCaption {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
 }
 
 .tableHead th {
