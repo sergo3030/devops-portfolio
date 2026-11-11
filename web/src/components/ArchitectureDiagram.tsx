@@ -20,9 +20,16 @@ import {
   type Point,
   type Variant,
 } from './metro';
+import { scrollToShow } from './follow';
 
 /** How long the dot takes to hop from one place to the next. */
 const HOP_MS = 430;
+
+/** The pixels at the foot of the screen taken by the status bar, plus a margin. */
+const FOOT_ROOM = 56;
+
+/** The gap kept under the pinned controls, so a lit step never touches them. */
+const DOCK_GAP = 12;
 
 const SCENARIO_KEYS = Object.keys(SCENARIOS) as ScenarioKey[];
 const VARIANTS: Variant[] = ['wide', 'tall'];
@@ -267,6 +274,7 @@ function StationMap({ variant, states, lit, tokenRef }: MapProps) {
   return (
     <svg
       className={`${styles.svg} ${wide ? styles.wide : styles.tall}`}
+      data-variant={variant}
       viewBox={`0 0 ${String(width)} ${String(height)}`}
       aria-hidden="true"
       focusable="false"
@@ -464,6 +472,8 @@ export function ArchitectureDiagram() {
   const stepRef = useRef(0);
   const tokens = useRef<Record<Variant, SVGGElement | null>>({ wide: null, tall: null });
   const timers = useRef<{ hops: number[] }>({ hops: [] });
+  const mapRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   const clearHops = useCallback(() => {
     timers.current.hops.forEach((id) => {
@@ -532,15 +542,44 @@ export function ArchitectureDiagram() {
     [clearHops, moveTo],
   );
 
+  /**
+   * On a phone the tall map is taller than the screen and the controls are pinned above it, so each
+   * step scrolls the page until its lit part is in view under the controls. Wider screens do not
+   * pin the controls (the dock is not sticky there), and nothing scrolls.
+   */
+  const follow = useCallback((ids: readonly NodeId[]) => {
+    const dock = dockRef.current;
+    const map = mapRef.current;
+    if (!dock || !map || getComputedStyle(dock).position !== 'sticky') return;
+    const svg = map.querySelector('svg[data-variant="tall"]');
+    if (!svg || svg.getClientRects().length === 0) return;
+    const lit = { top: Infinity, bottom: -Infinity };
+    for (const id of ids) {
+      const node = svg.querySelector(`[data-node="${id}"]`);
+      if (!node) continue;
+      const box = node.getBoundingClientRect();
+      lit.top = Math.min(lit.top, box.top);
+      lit.bottom = Math.max(lit.bottom, box.bottom);
+    }
+    if (lit.top === Infinity) return;
+    const by = scrollToShow(lit, {
+      top: dock.getBoundingClientRect().bottom + DOCK_GAP,
+      bottom: window.innerHeight - FOOT_ROOM,
+    });
+    if (Math.abs(by) < 1) return;
+    window.scrollBy({ top: by, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  }, []);
+
   const show = useCallback(
     (index: number, animate: boolean) => {
       stepRef.current = index;
       setStep(index);
-      const path = SCENARIOS[scenarioRef.current].steps[index - 1]?.path;
-      if (animate && path) fly(path);
+      const next = SCENARIOS[scenarioRef.current].steps[index - 1];
+      if (animate && next?.path) fly(next.path);
       else hideDot();
+      if (next) follow(next.hi);
     },
-    [fly, hideDot],
+    [fly, hideDot, follow],
   );
 
   useEffect(() => {
@@ -594,79 +633,81 @@ export function ArchitectureDiagram() {
         ))}
       </div>
 
-      <div className={styles.map}>
+      <div className={styles.map} ref={mapRef}>
         <div className={styles.side}>
-          <div className={styles.controls}>
-            <div className={styles.player} role="group" aria-label="Steps">
-              <button
-                type="button"
-                className={styles.transport}
-                aria-label="Restart"
-                title="Back to the start of the story"
-                disabled={step === 0}
-                onClick={() => {
-                  show(0, false);
+          <div className={styles.dock} ref={dockRef}>
+            <div className={styles.controls}>
+              <div className={styles.player} role="group" aria-label="Steps">
+                <button
+                  type="button"
+                  className={styles.transport}
+                  aria-label="Restart"
+                  title="Back to the start of the story"
+                  disabled={step === 0}
+                  onClick={() => {
+                    show(0, false);
+                  }}
+                >
+                  <Icon kind="restart" />
+                </button>
+                <button
+                  type="button"
+                  className={styles.transport}
+                  aria-label="Back"
+                  title="Back one step"
+                  disabled={step === 0}
+                  onClick={() => {
+                    show(step - 1, false);
+                  }}
+                >
+                  <Icon kind="back" />
+                </button>
+                <button
+                  type="button"
+                  className={styles.transport}
+                  aria-label="Replay step"
+                  title="Replay this step"
+                  disabled={step === 0}
+                  onClick={() => {
+                    show(step, true);
+                  }}
+                >
+                  <Icon kind="replay" />
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.transport} ${styles.transportMain}`}
+                  aria-label="Next"
+                  title="Next step"
+                  disabled={step === story.steps.length}
+                  onClick={() => {
+                    show(step + 1, true);
+                  }}
+                >
+                  <Icon kind="next" />
+                </button>
+              </div>
+              <input
+                id={sliderId}
+                className={styles.slider}
+                type="range"
+                min={0}
+                max={story.steps.length}
+                step={1}
+                value={step}
+                aria-label="Step"
+                aria-valuetext={`Step ${String(step)} of ${String(story.steps.length)}`}
+                onChange={(event) => {
+                  show(Number(event.target.value), false);
                 }}
-              >
-                <Icon kind="restart" />
-              </button>
-              <button
-                type="button"
-                className={styles.transport}
-                aria-label="Back"
-                title="Back one step"
-                disabled={step === 0}
-                onClick={() => {
-                  show(step - 1, false);
-                }}
-              >
-                <Icon kind="back" />
-              </button>
-              <button
-                type="button"
-                className={styles.transport}
-                aria-label="Replay step"
-                title="Replay this step"
-                disabled={step === 0}
-                onClick={() => {
-                  show(step, true);
-                }}
-              >
-                <Icon kind="replay" />
-              </button>
-              <button
-                type="button"
-                className={`${styles.transport} ${styles.transportMain}`}
-                aria-label="Next"
-                title="Next step"
-                disabled={step === story.steps.length}
-                onClick={() => {
-                  show(step + 1, true);
-                }}
-              >
-                <Icon kind="next" />
-              </button>
+              />
+              <span className={styles.time}>{current ? current.time : 'start'}</span>
             </div>
-            <input
-              id={sliderId}
-              className={styles.slider}
-              type="range"
-              min={0}
-              max={story.steps.length}
-              step={1}
-              value={step}
-              aria-label="Step"
-              aria-valuetext={`Step ${String(step)} of ${String(story.steps.length)}`}
-              onChange={(event) => {
-                show(Number(event.target.value), false);
-              }}
-            />
-            <span className={styles.time}>{current ? current.time : 'start'}</span>
-          </div>
 
-          <div className={styles.caption} aria-live="polite">
-            <p className={styles.heading}>{current ? current.heading : 'Before the request'}</p>
-            <p className={styles.text}>{current ? current.text : story.before}</p>
+            <div className={styles.caption} aria-live="polite">
+              <p className={styles.heading}>{current ? current.heading : 'Before the request'}</p>
+              <p className={styles.text}>{current ? current.text : story.before}</p>
+            </div>
           </div>
 
           <ul className={styles.legend} aria-label="What the colours mean">
@@ -690,16 +731,16 @@ export function ArchitectureDiagram() {
             }}
           />
         ))}
-
-        <ul className={styles.around} aria-label="Around the request path">
-          <li>Site: merge to main, Pages workflow, GitHub Pages.</li>
-          <li>
-            Deploy: release tag, image build, ECR image, OIDC role with no stored keys, tofu apply.
-            It creates both the Function URL and the Lambda.
-          </li>
-          <li>Logs: CloudWatch Logs. Cost guard: a budget alert and a cost anomaly alert.</li>
-        </ul>
       </div>
+
+      <ul className={styles.around} aria-label="Around the request path">
+        <li>Site: merge to main, Pages workflow, GitHub Pages.</li>
+        <li>
+          Deploy: release tag, image build, ECR image, OIDC role with no stored keys, tofu apply. It
+          creates both the Function URL and the Lambda.
+        </li>
+        <li>Logs: CloudWatch Logs. Cost guard: a budget alert and a cost anomaly alert.</li>
+      </ul>
 
       <table className={styles.table}>
         <caption className={styles.tableCaption}>State of each component</caption>

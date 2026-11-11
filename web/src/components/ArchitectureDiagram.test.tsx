@@ -209,3 +209,74 @@ describe('ArchitectureDiagram', () => {
     );
   });
 });
+
+describe('the pinned controls on a phone', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** jsdom has no layout, so the pinned bar and the lit step get fixed positions. */
+  function onAPhone() {
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const real = window.getComputedStyle.bind(window);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
+      (element.getAttribute('class') ?? '').includes('dock')
+        ? ({ position: 'sticky' } as CSSStyleDeclaration)
+        : real(element, pseudo),
+    );
+    vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element,
+    ) {
+      const lit = this.hasAttribute('data-node');
+      const top = lit ? 900 : 0;
+      const bottom = lit ? 960 : 260;
+      return { top, bottom, left: 0, right: 0, width: 0, height: bottom - top } as DOMRect;
+    });
+    return scrollBy;
+  }
+
+  it('scrolls the page so the step that lights up is in view under the controls', async () => {
+    preferReducedMotion(true);
+    const scrollBy = onAPhone();
+    const user = userEvent.setup();
+    render(<ArchitectureDiagram />);
+    expect(scrollBy).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    // the open window is 272 to 712 (bar bottom plus a gap, to the status bar), the step is at 900 to 960
+    expect(scrollBy).toHaveBeenCalledWith({ top: 438, behavior: 'auto' });
+  });
+
+  it('scrolls smoothly unless the visitor prefers reduced motion', async () => {
+    preferReducedMotion(false);
+    const scrollBy = onAPhone();
+    const user = userEvent.setup();
+    render(<ArchitectureDiagram />);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(scrollBy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+  });
+
+  it('does not scroll at the start of a story, or when the controls are not pinned', async () => {
+    preferReducedMotion(true);
+    const user = userEvent.setup();
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    render(<ArchitectureDiagram />);
+    // no layout engine, so the bar is not sticky: a laptop or desktop
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it('keeps every control and the step text inside the pinned bar', () => {
+    preferReducedMotion(true);
+    const { container } = render(<ArchitectureDiagram />);
+    const dock = container.querySelector<HTMLElement>('[class*="dock"]');
+    expect(dock).not.toBeNull();
+    const bar = within(dock as HTMLElement);
+    for (const name of ['Restart', 'Back', 'Replay step', 'Next']) {
+      expect(bar.getByRole('button', { name })).toBeInTheDocument();
+    }
+    expect(bar.getByRole('slider', { name: 'Step' })).toBeInTheDocument();
+    expect(bar.getByText('Before the request')).toBeInTheDocument();
+  });
+});

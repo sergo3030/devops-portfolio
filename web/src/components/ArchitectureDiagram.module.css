@@ -3,8 +3,9 @@
    inside it. Boxes keep a fixed size so nothing jumps while the story plays. State is never colour
    alone: a dashed outline, a fill, a cross, and the words. */
 .panel {
+  --panel-pad: var(--space-4);
   composes: module from '../styles/parts.module.css';
-  padding: var(--space-4);
+  padding: var(--panel-pad);
 }
 
 .scenarios {
@@ -444,47 +445,31 @@
 }
 
 /* ---- the controls and the words ---- */
+
+/* On a phone the map is taller than the screen. The controls and the words about the current step
+   sit in a dock that stays pinned at the top while the map scrolls under it, so the buttons, the
+   text and the picture are on screen together. The wrapper has no box here: that lets the dock stay
+   pinned along the whole map, with the colour key just above the picture. */
 .side {
-  margin-block-end: var(--space-3);
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--color-line);
+  display: contents;
 }
 
-/* On a wide screen the map and the controls sit side by side, so the whole card fits on one screen
-   and the words about a step can be read while the dot moves. Narrower than that the controls
-   stay above the map. */
-@media (min-width: 75rem) {
-  .map {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 17rem;
-    column-gap: var(--space-4);
-    align-items: start;
-  }
-
-  .side {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0;
-    padding: 0 0 0 var(--space-4);
-    border-block-end: 0;
-    border-inline-start: 1px solid var(--color-line);
-  }
-
-  /* A short screen shrinks the map so the whole card still fits: the height of the map is at most
-     the screen height minus the rows above it. */
-  .wide {
-    grid-column: 1;
-    grid-row: 1;
-    max-inline-size: max(40rem, calc((100vh - 15rem) * 1.53));
-    margin-inline: auto;
-  }
+.dock {
+  position: sticky;
+  inset-block-start: var(--space-2);
+  z-index: 5;
+  margin-inline: calc(var(--panel-pad) * -1);
+  padding: var(--space-2) var(--panel-pad) var(--space-3);
+  border-radius: var(--radius-module);
+  background: linear-gradient(145deg, var(--color-panel-top), var(--color-panel-bottom));
+  box-shadow: var(--shadow-raise);
 }
 
 /* One column: the button deck and the slider share the full width of the card (up to 24rem), and
    the time label sits under them. */
 .controls {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   inline-size: 100%;
   max-inline-size: 24rem;
 }
@@ -594,46 +579,36 @@
   line-height: 1.3;
 }
 
-/* Room for the longest step text at each width, so nothing below it moves. */
+/* Room for the longest step text at each width, so the dock never changes height and the map never
+   moves under it. In the dock the text is a little smaller, to leave room for the map. The heights
+   are the tallest text of the four stories, measured at the narrowest width of each band. */
 .caption {
-  min-block-size: 12rem;
-  margin-block: var(--space-2);
+  min-block-size: 9.25rem;
+  margin-block-start: var(--space-2);
 }
 
-@media (min-width: 24rem) {
-  .caption {
-    min-block-size: 10.5rem;
-  }
-}
-
-@media (min-width: 30rem) {
+@media (min-width: 22.5rem) {
   .caption {
     min-block-size: 8rem;
   }
 }
 
-@media (min-width: 36rem) {
+@media (min-width: 25rem) {
   .caption {
-    min-block-size: 6.5rem;
+    min-block-size: 6.75rem;
   }
 }
 
-@media (min-width: 62rem) {
+@media (min-width: 35rem) {
   .caption {
-    min-block-size: 6.5rem;
-  }
-}
-
-@media (min-width: 75rem) {
-  .caption {
-    min-block-size: 12rem;
+    min-block-size: 5.5rem;
   }
 }
 
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -641,17 +616,16 @@
 .text {
   max-inline-size: 70ch;
   margin: 0.25rem 0 0;
-  font-size: 0.9375rem;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: var(--space-2) 0 0;
-  border-block-start: 1px solid var(--color-line);
+  margin: var(--space-3) 0 var(--space-2);
+  padding: 0;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   list-style: none;
@@ -660,6 +634,87 @@
 .legend li {
   display: flex;
   align-items: center;
+}
+
+/* From a laptop up the picture is short enough to sit on the screen with the controls, so nothing is
+   pinned: the controls stay above the map, in the card's normal flow, and the words go back to the
+   size they have there. */
+@media (min-width: 62rem) {
+  .side {
+    display: block;
+    margin-block-end: var(--space-3);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--color-line);
+  }
+
+  .dock {
+    position: static;
+    margin-inline: 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .controls {
+    gap: var(--space-3);
+  }
+
+  .caption {
+    min-block-size: 6.5rem;
+    margin-block: var(--space-2);
+  }
+
+  .heading {
+    font-size: 1.25rem;
+  }
+
+  .text {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .legend {
+    margin: 0;
+    padding: var(--space-2) 0 0;
+    border-block-start: 1px solid var(--color-line);
+  }
+}
+
+/* On a wide screen the map and the controls sit side by side, so the whole card fits on one screen
+   and the words about a step can be read while the dot moves. Narrower than that the controls
+   stay above the map. */
+@media (min-width: 75rem) {
+  .map {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    column-gap: var(--space-4);
+    align-items: start;
+  }
+
+  .side {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    padding: 0 0 0 var(--space-4);
+    border-block-end: 0;
+    border-inline-start: 1px solid var(--color-line);
+  }
+
+  /* A short screen shrinks the map so the whole card still fits: the height of the map is at most
+     the screen height minus the rows above it. */
+  .wide {
+    grid-column: 1;
+    grid-row: 1;
+    max-inline-size: max(40rem, calc((100vh - 15rem) * 1.53));
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 75rem) {
+  .caption {
+    min-block-size: 12rem;
+  }
 }
 
 .table {
@@ -732,7 +787,7 @@
 
 @media (max-width: 40rem) {
   .panel {
-    padding: var(--space-3);
+    --panel-pad: var(--space-3);
   }
 
   .tableHead {
