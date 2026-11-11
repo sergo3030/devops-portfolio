@@ -19,6 +19,11 @@
   composes: led from '../styles/parts.module.css';
 }
 
+/* Like the other live-data LEDs, it lights up and breathes while the content comes from the API. */
+.ledLive {
+  composes: led lit pulse from '../styles/parts.module.css';
+}
+
 .role {
   margin-block: var(--space-2) var(--space-2);
   font-family: var(--font-display);

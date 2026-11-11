@@ -58,7 +58,7 @@ export function App({ content, dataSource = { kind: 'none' }, page = 'home' }: P
             <>
               <div className={styles.columns}>
                 <div>
-                  <Experience jobs={content.experience} />
+                  <Experience jobs={content.experience} live={dataSource.kind === 'live'} />
                 </div>
                 <div>
                   <Skills groups={content.skills} />

@@ -3,9 +3,9 @@ import { formatPeriod, newestFirst } from '../lib/period';
 import styles from './Experience.module.css';
 import { Section } from './Section';
 
-type Props = { jobs: ExperienceItem };
+type Props = { jobs: ExperienceItem; live?: boolean };
 
-export function Experience({ jobs }: Props) {
+export function Experience({ jobs, live = false }: Props) {
   if (jobs.length === 0) return null;
   return (
     <Section heading="Experience">
@@ -13,7 +13,7 @@ export function Experience({ jobs }: Props) {
         {newestFirst(jobs).map((job) => (
           <li key={`${job.employer}-${job.start}`} className={styles.job}>
             <p className={styles.period}>
-              <i className={styles.led} aria-hidden="true" />
+              <i className={live ? styles.ledLive : styles.led} aria-hidden="true" />
               {formatPeriod(job.start, job.end)}
             </p>
             <h3 className={styles.role}>
