@@ -305,8 +305,9 @@
 }
 
 /* The summary is revealed top to bottom in steps, like a screen being drawn; it is in the page all
-   along, so a reader and the page's text search find it at once. The cursor blinks six times and
-   then stays on. */
+   along, so a reader and the page's text search find it at once. The cursor sits steady while the
+   screen is drawn, then blinks for as long as the page is open (a visitor who prefers reduced
+   motion gets a steady one). */
 .summary {
   margin: 0;
   animation: scan 1600ms steps(24) calc(var(--boot) + 900ms) both;
@@ -330,7 +331,7 @@
   margin-inline-start: var(--space-1);
   background: var(--color-accent);
   vertical-align: -0.12em;
-  animation: cursor 1s steps(1) calc(var(--boot) + 2500ms) 6;
+  animation: cursor 1s steps(1) calc(var(--boot) + 2500ms) infinite;
 }
 
 @keyframes cursor {
