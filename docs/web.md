@@ -143,8 +143,8 @@ charcoal and lightens the orange.
   2026-11-10: its editorial shapes did not fit hardware panels (the owner's call).
 - **Parts (`styles/parts.module.css`):** a *module* is a raised plate (18 px corners), a *label* is a
   small mono line in the case the text is written in, an *LED* is off or orange (no glow; steady, except the live-data
-  LEDs, which pulse softly while the content comes from the API: the status bar's and the six skill
-  modules'; lit only where something is live, current or working), a *key* moves down when pressed (36 px tall, a
+  LEDs, which pulse softly while the content comes from the API: the status bar's, the six skill
+  modules' and the job modules'; lit only where something is live, current or working), a *key* moves down when pressed (36 px tall, a
   hero key 44), a *well* is sunk into the board, and a *screen* is dark glass with light mono text. A
   component that needs a part to differ sets the part's custom property (`--key-padding`,
   `--module-radius` and the others listed at the top of `parts.module.css`). It must not override the
@@ -169,7 +169,8 @@ charcoal and lightens the orange.
 - **Motion:** one start-up. A boot screen (a logo and a bar of ticks) covers the page for 1.5 s and
   fades; then the modules rise in one by one, the traces draw themselves, the summary is revealed on
   the screen from top to bottom, a short orange signal runs along each trace twice, and the cursor
-  blinks six times and stays on. Then the page is still.
+  starts to blink and keeps blinking for as long as the page is open. Apart from the cursor and the
+  live-data LEDs the page is then still.
   The boot screen and every entrance are CSS only (no script), so the page is complete without them;
   the boot screen never blocks a click, and its length is `--boot` in `tokens.css`. Reduced motion
   removes the boot screen and every animation, pseudo-elements included. No inline styles (the policy
@@ -216,9 +217,16 @@ step slider, a legend of the states, and a table with the state of each componen
   that splits to both the Function URL and the Lambda, CloudWatch Logs, and a cost guard note). From
   75rem the controls and the words about the step sit in a column beside the picture, so the whole
   card (stories, phases, map and controls) fits one screen and the words can be read while the dot
-  moves; a short screen shrinks the map further. From 62rem to 75rem the controls sit above it. Below 62rem a second, tall picture is used (one column,
-  without the grey lines, which become a short list under it). Both pictures are drawn from the same
-  data, so the dot moves in both.
+  moves; a short screen shrinks the map further. From 62rem to 75rem the controls sit above it.
+  Below 62rem a second, tall picture is used (one column, without the grey lines, which become a
+  short list under it). Both pictures are drawn from the same data, so the dot moves in both.
+  The tall picture is taller than a phone screen, so there the buttons, the slider and the words
+  about the step are pinned at the top of the screen (the `dock`, `position: sticky`) while the map
+  scrolls under it. Each step then scrolls the page until the part that lights up is in view under
+  the dock and above the status bar (`components/follow.ts` holds the arithmetic; the scroll is
+  smooth, instant under reduced motion, and skipped from 62rem up, where nothing is pinned). The
+  words have a fixed height per width band, measured from the longest of the four stories, so the
+  dock never changes height and the map never moves under it.
 - **States:** each stop shows its state label in a pill. A stop that is not running has a dashed
   outline, a ready one is filled grey, a working one is filled orange (and flickers like an LED),
   and an error is filled dark with a cross. The words, the legend and the table say the same, so

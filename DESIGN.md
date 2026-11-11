@@ -107,7 +107,8 @@ A panel is 14 to 20 px (modules 18, the device 20), a control 8 to 10 (keys 10, 
   three skills, a tick scale and a trace to the device. Decoration: hidden from assistive technology.
 - **Keys:** page keys (the current page is pressed in, with a lit LED), orange profile keys, and the
   skills as small keycaps. A hidden skill leaves a dashed empty slot.
-- **Job module:** a printed date line with an unlit LED, the role in the display face, the bullets.
+- **Job module:** a printed date line with an LED (off; lit and softly pulsing while the content comes
+  from the API, like the skill modules'), the role in the display face, the bullets.
 - **Language sockets:** a small module with the language name.
 - **Section heading:** the heading with a printed trace running out to the edge.
 - **Tab icon:** a keycap with a squared S and one orange LED, adapting to a dark browser theme.
@@ -121,10 +122,11 @@ A panel is 14 to 20 px (modules 18, the device 20), a control 8 to 10 (keys 10, 
 One start-up: a boot screen (a logo and sixteen ticks) covers the page for 1.5 s and fades; the
 modules rise 10 px in one after the other (60 ms apart, opacity and transform only), traces draw
 themselves, the summary is revealed top to bottom, a short orange signal runs along each trace twice,
-and the cursor blinks six times and stays on. Then the page is still. All of it is CSS.
+and the cursor starts to blink. Then the page is still, apart from the cursor and the live-data LEDs.
+All of it is CSS.
 
 One curve (`--ease`), a 150 ms press and a 500 ms entrance, all tokens. Nothing loops without a
-reason: LEDs are steady, except the live-data LEDs (the status bar's and the skill modules'), which pulse softly while the data is live. A lit LED
+reason: LEDs are steady, except the live-data LEDs (the status bar's, the skill modules' and the job modules'), which pulse softly while the data is live, and the hero's cursor, which blinks for as long as the page is open, as on a terminal. A lit LED
 means something is live, current or working (the role line, the current page, live data, a working
 step). Reduced motion removes the boot screen and every animation.
 The diagram moves only when the visitor presses a key; its request line carries a signal twice when the
