@@ -115,7 +115,8 @@ A panel is 14 to 20 px (modules 18, the device 20), a control 8 to 10 (keys 10, 
 - **Status bar:** a sticky printed label with an LED, lit and softly pulsing while the data is live, off when the saved copy is shown.
 - **Architecture diagram:** the card is a module. Stories are keys, phases are mono chips, the controls
   are four keys on a dark screen with a grooved slider, and the map is a light trace in a groove with an
-  orange signal. State is never colour alone: dashed outline, fill, cross, and the words.
+  orange signal. State is never colour alone: dashed outline, fill, cross, and the words. On a phone the
+  controls are pinned at the top, the map has a compact layout, and the state table folds behind a key.
 
 ## Motion
 

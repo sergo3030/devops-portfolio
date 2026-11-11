@@ -203,7 +203,9 @@ one box, the Lambda container, which holds six numbered steps: the Web Adapter a
 layers (security headers, the read-only check, CORS, the router, and the content in memory). It has
 four stories (cold start and request, warm request, POST refused, start-up failure), a Lambda phase
 indicator (Init, Invoke, Idle, Shutdown), Restart, Back, Replay (the current step) and Next buttons, a
-step slider, a legend of the states, and a table with the state of each component. The map is drawn as SVG in the site's own style.
+step slider, a legend of the states, and a table with the state of each component (below 62rem the
+table is folded behind a button, so the page under the map stays short; from 62rem it is always open).
+The map is drawn as SVG in the site's own style.
 
 - **Data:** `components/architecture.ts` holds the stories. A step moves a dot along a path, says what
   happened, and lists only the states that changed, so adding a story means adding steps there.
@@ -218,15 +220,18 @@ step slider, a legend of the states, and a table with the state of each componen
   75rem the controls and the words about the step sit in a column beside the picture, so the whole
   card (stories, phases, map and controls) fits one screen and the words can be read while the dot
   moves; a short screen shrinks the map further. From 62rem to 75rem the controls sit above it.
-  Below 62rem a second, tall picture is used (one column, without the grey lines, which become a
-  short list under it). Both pictures are drawn from the same data, so the dot moves in both.
-  The tall picture is taller than a phone screen, so there the buttons, the slider and the words
-  about the step are pinned at the top of the screen (the `dock`, `position: sticky`) while the map
-  scrolls under it. Each step then scrolls the page until the part that lights up is in view under
-  the dock and above the status bar (`components/follow.ts` holds the arithmetic; the scroll is
-  smooth, instant under reduced motion, and skipped from 62rem up, where nothing is pinned). The
-  words have a fixed height per width band, measured from the longest of the four stories, so the
-  dock never changes height and the map never moves under it.
+  Below 62rem a second, compact picture is used: one column, with each state pill on the same row as
+  its name and the container box below with its six steps (600 x 904 units, about half the height
+  of a plain stack, so most of it fits beside the pinned controls on a phone). It has no grey lines;
+  they become a short list under it. Both pictures are drawn from the same data, so the dot moves
+  in both. Even so, the compact picture and the pinned controls together can be taller than a phone
+  screen, so there the buttons, the slider and the words about the step are pinned at the top of the
+  screen (the `dock`, `position: sticky`) while the map scrolls under it. Each step then scrolls the
+  page until the part that lights up is in view under the dock and above the status bar
+  (`components/follow.ts` holds the arithmetic; the scroll is smooth, instant under reduced motion,
+  and skipped from 62rem up, where nothing is pinned). The words have a fixed height per width band,
+  measured from the longest of the four stories, so the dock never changes height and the map never
+  moves under it. In the dock the slider and the time label share one row.
 - **States:** each stop shows its state label in a pill. A stop that is not running has a dashed
   outline, a ready one is filled grey, a working one is filled orange (and flickers like an LED),
   and an error is filled dark with a cross. The words, the legend and the table say the same, so
