@@ -31,8 +31,29 @@ const FOOT_ROOM = 56;
 /** The gap kept under the pinned controls, so a lit step never touches them. */
 const DOCK_GAP = 12;
 
+/** The chevron on the button that folds the table: drawn, so no icon font is needed. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+      viewBox="0 0 24 24"
+      focusable="false"
+      aria-hidden="true"
+    >
+      <path
+        d="M6 9l6 6 6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const SCENARIO_KEYS = Object.keys(SCENARIOS) as ScenarioKey[];
-const VARIANTS: Variant[] = ['wide', 'tall'];
+const VARIANTS: Variant[] = ['wide', 'compact'];
 const TONES = [
   ['idle', 'Not running'],
   ['ready', 'Ready'],
@@ -253,10 +274,16 @@ function StationMap({ variant, states, lit, tokenRef }: MapProps) {
           </>
         ) : (
           <>
-            <text className={styles.name} x={x + 34} y={y - 2}>
+            <text className={styles.name} x={x + 40} y={y + 12}>
               {NODE_NAMES[id]}
             </text>
-            <Pill x={x + 34} y={y + 8} text={state.label} tone={state.tone} anchor="start" />
+            <Pill
+              x={width - 12}
+              y={y - PILL_H / 2}
+              text={state.label}
+              tone={state.tone}
+              anchor="end"
+            />
           </>
         )}
       </g>
@@ -267,13 +294,13 @@ function StationMap({ variant, states, lit, tokenRef }: MapProps) {
   const [px, py] = pos.p;
   const [sx, sy] = layout.saved[1] ?? pos.f;
   const rowX = box.x + 24;
-  const textX = wide ? rowX : rowX + 36;
+  const textX = rowX;
   const headerPath = `M${String(box.x)} ${String(box.y + box.head)}V${String(box.y + 8)}a8 8 0 0 1 8-8h${String(box.w - 16)}a8 8 0 0 1 8 8V${String(box.y + box.head)}z`;
   const boxCentre = box.x + box.w / 2;
 
   return (
     <svg
-      className={`${styles.svg} ${wide ? styles.wide : styles.tall}`}
+      className={`${styles.svg} ${wide ? styles.wide : styles.compact}`}
       data-variant={variant}
       viewBox={`0 0 ${String(width)} ${String(height)}`}
       aria-hidden="true"
@@ -324,19 +351,16 @@ function StationMap({ variant, states, lit, tokenRef }: MapProps) {
         </>
       ) : (
         <>
-          <text className={styles.name} x={px + 34} y={py - 2}>
+          <text className={styles.name} x={px + 40} y={py + 12}>
             GitHub Pages
           </text>
-          <Tag x={px + 34} y={py + 8} text="static files" />
-          <text className={styles.name} x={fx + 34} y={fy - 4}>
+          <Tag x={width - 12} y={py - PILL_H / 2} text="static files" anchor="end" />
+          <text className={styles.name} x={fx + 40} y={fy + 12}>
             Content fork
           </text>
-          <Tag x={fx + 70} y={fy + 6} text="live: calls the API" />
-          <text className={styles.label} x={sx + 26} y={sy + 2}>
-            Saved copy,
-          </text>
-          <text className={styles.label} x={sx + 26} y={sy + 30}>
-            if the API is offline
+          <Tag x={width - 12} y={fy - PILL_H / 2} text="live: API call" anchor="end" />
+          <text className={styles.label} x={sx + 28} y={sy + 8}>
+            Saved copy, if the API is offline
           </text>
         </>
       )}
@@ -465,12 +489,14 @@ function StationMap({ variant, states, lit, tokenRef }: MapProps) {
  */
 export function ArchitectureDiagram() {
   const sliderId = useId();
+  const tableId = useId();
+  const [tableOpen, setTableOpen] = useState(false);
   const [scenario, setScenario] = useState<ScenarioKey>('cold');
   const [step, setStep] = useState(0);
 
   const scenarioRef = useRef<ScenarioKey>('cold');
   const stepRef = useRef(0);
-  const tokens = useRef<Record<Variant, SVGGElement | null>>({ wide: null, tall: null });
+  const tokens = useRef<Record<Variant, SVGGElement | null>>({ wide: null, compact: null });
   const timers = useRef<{ hops: number[] }>({ hops: [] });
   const mapRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -543,15 +569,17 @@ export function ArchitectureDiagram() {
   );
 
   /**
-   * On a phone the tall map is taller than the screen and the controls are pinned above it, so each
+   * On a phone the compact map and the pinned controls together can be taller than the screen, so each
    * step scrolls the page until its lit part is in view under the controls. Wider screens do not
    * pin the controls (the dock is not sticky there), and nothing scrolls.
    */
   const follow = useCallback((ids: readonly NodeId[]) => {
     const dock = dockRef.current;
     const map = mapRef.current;
-    if (!dock || !map || getComputedStyle(dock).position !== 'sticky') return;
-    const svg = map.querySelector('svg[data-variant="tall"]');
+    if (!dock || !map) return;
+    const style = getComputedStyle(dock);
+    if (style.position !== 'sticky') return;
+    const svg = map.querySelector('svg[data-variant="compact"]');
     if (!svg || svg.getClientRects().length === 0) return;
     const lit = { top: Infinity, bottom: -Infinity };
     for (const id of ids) {
@@ -562,8 +590,12 @@ export function ArchitectureDiagram() {
       lit.bottom = Math.max(lit.bottom, box.bottom);
     }
     if (lit.top === Infinity) return;
+    // The open window is measured from where the bar will be once it is pinned (its offset from the
+    // top plus its height), not from where it is now: before the page has scrolled to the map the
+    // bar sits lower, and measuring from there leaves no window at all on a short screen.
+    const pinned = Number.parseFloat(style.top) || 0;
     const by = scrollToShow(lit, {
-      top: dock.getBoundingClientRect().bottom + DOCK_GAP,
+      top: pinned + dock.getBoundingClientRect().height + DOCK_GAP,
       bottom: window.innerHeight - FOOT_ROOM,
     });
     if (Math.abs(by) < 1) return;
@@ -742,31 +774,51 @@ export function ArchitectureDiagram() {
         <li>Logs: CloudWatch Logs. Cost guard: a budget alert and a cost anomaly alert.</li>
       </ul>
 
-      <table className={styles.table}>
-        <caption className={styles.tableCaption}>State of each component</caption>
-        <thead className={styles.tableHead}>
-          <tr>
-            <th scope="col">Component</th>
-            <th scope="col">State</th>
-            <th scope="col">What it is doing</th>
-          </tr>
-        </thead>
-        <tbody>
-          {NODE_IDS.map((id) => {
-            const row = states[id];
-            return (
-              <tr key={id}>
-                <th scope="row" className={styles.rowName}>
-                  <span className={`${styles.rowDot} ${styles[row.tone]}`} />
-                  {NODE_NAMES[id]}
-                </th>
-                <td>{row.label}</td>
-                <td className={styles.detail}>{row.detail}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* The table is the text version of the picture. Below 62rem it is folded behind a button, so
+          the page under the map is short; from 62rem it is always open and the button is gone. */}
+      <div className={styles.tableToggleBar}>
+        <button
+          type="button"
+          className={styles.tableToggle}
+          aria-expanded={tableOpen}
+          aria-controls={tableId}
+          onClick={() => {
+            setTableOpen((open) => !open);
+          }}
+        >
+          <span className={styles.tableToggleRow}>
+            State of each component
+            <Chevron open={tableOpen} />
+          </span>
+        </button>
+      </div>
+      <div id={tableId} className={tableOpen ? undefined : styles.tableFolded}>
+        <table className={styles.table}>
+          <caption className={styles.tableCaption}>State of each component</caption>
+          <thead className={styles.tableHead}>
+            <tr>
+              <th scope="col">Component</th>
+              <th scope="col">State</th>
+              <th scope="col">What it is doing</th>
+            </tr>
+          </thead>
+          <tbody>
+            {NODE_IDS.map((id) => {
+              const row = states[id];
+              return (
+                <tr key={id}>
+                  <th scope="row" className={styles.rowName}>
+                    <span className={`${styles.rowDot} ${styles[row.tone]}`} />
+                    {NODE_NAMES[id]}
+                  </th>
+                  <td>{row.label}</td>
+                  <td className={styles.detail}>{row.detail}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

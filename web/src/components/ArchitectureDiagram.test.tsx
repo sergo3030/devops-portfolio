@@ -210,6 +210,38 @@ describe('ArchitectureDiagram', () => {
   });
 });
 
+describe('the state table', () => {
+  it('is folded behind a button that opens and closes it', async () => {
+    preferReducedMotion(true);
+    const user = userEvent.setup();
+    render(<ArchitectureDiagram />);
+    const toggle = screen.getByRole('button', { name: 'State of each component' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', screen.getByRole('table').parentElement?.id);
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('the two pictures', () => {
+  it('draw every component with its state, in the wide and in the compact layout', async () => {
+    preferReducedMotion(true);
+    const user = userEvent.setup();
+    const { container } = render(<ArchitectureDiagram />);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    for (const variant of ['wide', 'compact']) {
+      const svg = container.querySelector<SVGSVGElement>(`svg[data-variant="${variant}"]`);
+      expect(svg).not.toBeNull();
+      expect(svg?.querySelectorAll('[data-node]')).toHaveLength(NODE_IDS.length);
+      expect(
+        within(svg as unknown as HTMLElement).getByText('Waiting for the answer'),
+      ).toBeInTheDocument();
+    }
+  });
+});
+
 describe('the pinned controls on a phone', () => {
   afterEach(() => {
     vi.restoreAllMocks();
