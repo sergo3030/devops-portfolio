@@ -185,17 +185,31 @@ describe('skills filter', () => {
 });
 
 describe('live data', () => {
-  it('lights the skill module LEDs while the content comes from the API, and not otherwise', () => {
+  it('lights the module and job LEDs while the content comes from the API, and not otherwise', () => {
     const lit = (container: HTMLElement) => container.querySelectorAll('[class*="ledLive"]').length;
     const live = render(
       <App content={sampleContent} dataSource={{ kind: 'live', version: '1.0.0' }} />,
     );
-    expect(lit(live.container)).toBe(2);
+    // two skill modules and two jobs
+    expect(lit(live.container)).toBe(4);
     live.unmount();
     const offline = render(<App content={sampleContent} dataSource={{ kind: 'offline' }} />);
     expect(lit(offline.container)).toBe(0);
     offline.unmount();
     const none = render(<App content={sampleContent} />);
     expect(lit(none.container)).toBe(0);
+  });
+
+  it('lights the LED beside the dates of every job, like the other live-data LEDs', () => {
+    const jobLeds = () =>
+      screen.getByRole('region', { name: 'Experience' }).querySelectorAll('[class*="ledLive"]')
+        .length;
+    const live = render(
+      <App content={sampleContent} dataSource={{ kind: 'live', version: '1.0.0' }} />,
+    );
+    expect(jobLeds()).toBe(2);
+    live.unmount();
+    render(<App content={sampleContent} dataSource={{ kind: 'offline' }} />);
+    expect(jobLeds()).toBe(0);
   });
 });
