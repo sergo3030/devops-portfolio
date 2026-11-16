@@ -5,13 +5,13 @@
 # Every base image is pinned by digest. Dependabot (docker ecosystem) keeps them current.
 
 # ------------------------------------------------------------------ tool images
-FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 AS uv
 FROM public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0@sha256:17cfd08eff1dfea3f6a9a1e9c65fdac80aa4919b6085e746615530f43f57d2f1 AS lwa
 
 # ------------------------------------------------------------------ content stage
 # Builds the published content (approved lines only). The private denylist cannot run in
 # CI, so the content must already have passed it locally, where the pre-commit hook runs it.
-FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS content
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS content
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
@@ -28,7 +28,7 @@ RUN /opt/content-venv/bin/python scripts/check_content.py \
 # ------------------------------------------------------------------ builder stage
 # The runtime dependencies only, compiled to bytecode: the root filesystem is read-only on
 # Lambda, so nothing can be compiled at run time.
-FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS builder
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS builder
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -39,7 +39,7 @@ COPY app/pyproject.toml app/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 
 # ------------------------------------------------------------------ runtime stage
-FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS runtime
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS runtime
 
 # Security update for zlib1g. The base image above predates Debian's fix (DSA-6613-1:
 # CVE-2026-76844 and CVE-2026-85091, fixed in 1:1.3.dfsg+really1.3.1-1+deb13u1), so the image scan
